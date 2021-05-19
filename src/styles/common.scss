@@ -1,0 +1,250 @@
+.wpg {
+	&-button {
+		display: inline-block;
+		color: $editor-color;
+		background: transparent;
+		border: none;
+		padding: $button-padding;
+		text-decoration: none;
+		&:not([disabled]) {
+			cursor: pointer;
+		}
+		&[disabled] {
+			color: darken($editor-color, 25%);
+			text-decoration: none;
+		}
+		&:hover:not([disabled]) {
+			color: lighten($editor-color, 25%);
+			background: lighten($editor-bg, 25%);
+			text-decoration: none;
+		}
+		&:active,
+		&:focus {
+			color: $button-active-color;
+			background: transparent;
+			outline: none;
+			box-shadow: none;
+			border: none;
+			text-decoration: none;
+		}
+		&.active {
+			color: $button-active-color;
+			background: $button-active-bg;
+			outline: none;
+			text-decoration: none;
+			&:hover:not([disabled]) {
+				color: $button-active-color;
+				background: $button-active-bg;
+			}
+		}
+		.fas {
+			color: inherit;
+		}
+		.dashicons {
+			display: block;
+			width: 1em;
+			height: 1em;
+			font-size: 1em;
+			line-height: 1.5;
+			vertical-align: middle;
+			color: inherit;
+		}
+	}
+	&-input-wrapper {
+		display: inline-block;
+		padding: $padding-sm;
+	}
+	&-label,
+	&-input,
+	&-select {
+		display: block;
+		width: 100%;
+	}
+	&-label {
+		margin: $label-margin;
+	}
+	&-input,
+	&-select {
+		min-height: 0 !important; /* Reset WordPress core style. */
+		line-height: initial !important; /* Reset WordPress core style. */
+		padding: 0 !important; /* Reset WordPress core style. */
+		color: $editor-color !important;
+		background: transparent !important;
+		border: none !important;
+		box-shadow: $inset-shadow !important;
+		&:focus {
+			outline: none;
+		}
+	}
+	&-select {
+		-webkit-appearance: none;
+		background: url($select-arrow-svg) no-repeat right 5px top 55% !important;
+		option {
+			color: #000;
+		}
+	}
+	&-range-slider {
+		position: relative;
+		width: 100%;
+		height: $range-slider-height;
+		box-shadow: $track-shadow;
+		border-radius: $range-slider-border-radius;
+		.ui-slider-handle {
+			position: absolute;
+			top: ($range-slider-height - $range-slider-handle-height) / 2;
+			width: $range-slider-handle-width;
+			height: $range-slider-handle-height;
+			margin-left: -$range-slider-handle-width / 2;
+			text-align: center;
+			background: $range-slider-handle-bg;
+			box-shadow: $shadow;
+			border-radius: $range-slider-border-radius;
+			cursor: pointer;
+		}
+	}
+	&-tab {
+		margin: 0;
+		margin-bottom: $padding-sm;
+		&__title,
+		&__content {
+			padding: $tab-padding;
+		}
+		&__title {
+			display: flex;
+			flex-flow: row;
+			flex-wrap: nowrap;
+			justify-content: space-between;
+			align-items: center;
+			width: 100%;
+			margin: 0;
+			cursor: pointer;
+			background: $tab-title-bg;
+			box-shadow: $tab-title-shadow;
+			.wpg-button {
+				padding: $button-padding-sm;
+				line-height: 0.8em;
+			}
+		}
+		&__content {
+			display: none;
+			box-shadow: $inset-shadow;
+		}
+		&.active {
+			.wpg-tab__content {
+				display: block;
+			}
+		}
+	}
+	&-popup {
+		background: $editor-bg;
+		padding: $padding;
+		box-shadow: $shadow;
+		z-index: 9999;
+		&__title {
+			margin: 0;
+			padding-bottom: $padding;
+		}
+		&__backdrop {
+			position: fixed;
+			top: 0;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			background: $backdrop-bg;
+			z-index: 999;
+		}
+	}
+	&-stroke-dash-array-control {
+		display: block;
+		.wpg-input-wrapper {
+			display: flex !important;
+			flex-flow: row;
+			flex-wrap: nowrap;
+			width: 100%;
+			small {
+				display: inline-block;
+				margin: 0 $path-command-input-margin-x;
+				margin-bottom: 2 * -$path-command-input-margin-y;
+				flex-basis: 35%;
+				width: 35%;
+			}
+			.wpg-input {
+				margin: $path-command-input-margin-y $path-command-input-margin-x;
+				flex-basis: 35%;
+				width: 35%;
+			}
+		}
+	}
+	&-divider {
+		margin: 0 auto;
+		border-bottom: none;
+		width: calc(100% - 24px); // 24px is the button padding x multiply by 2.
+	}
+	&-keyboard-shortcuts {
+		height: 100%;
+		overflow-x: hidden;
+		overflow-y: scroll;
+		padding-right: $padding;
+		margin-right: -$padding;
+		&__section {
+			.wpg-label {
+				border-bottom: solid 1px $editor-color;
+			}
+		}
+		&__list {
+			&-item {
+				display: flex;
+				flex-flow: row;
+				flex-wrap: nowrap;
+				align-items: baseline;
+				padding: $padding-sm 0;
+			}
+		}
+		&__description,
+		&__combination {
+			display: inline-block;
+		}
+		&__description {
+			flex: 1 1 50%;
+		}
+		&__combination {
+			padding: $button-padding-sm;
+			background: lighten($editor-bg, 25%);
+		}
+	}
+	&-shortcode-generator {
+		height: 100%;
+		overflow-x: hidden;
+		overflow-y: scroll;
+		padding-right: $padding;
+		margin-right: -$padding;
+		&__shortcode {
+			display: flex !important;
+			flex-flow: row;
+			flex-wrap: nowrap;
+		}
+		&__svg-preview {
+			box-shadow: $inset-shadow-lg;
+			svg {
+				display: block;
+				margin: auto;
+			}
+		}
+	}
+	&-editor *::-webkit-scrollbar {
+		width: $scrollbar-width;
+		overflow: hidden;
+		&-track {
+			box-shadow: $inset-shadow;
+		}
+		&-thumb {
+			background: $editor-color;
+			border-radius: $scrollbar-thumb-border-radius;
+			box-shadow: $shadow;
+		}
+	}
+}
+
+.iris-error {
+	background: $notification-error-bg !important;
+}

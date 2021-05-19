@@ -1,0 +1,185 @@
+@import './styles/variables';
+@import './styles/projects-variables';
+@import './styles/common';
+
+.wpg {
+	&-modal {
+		&__window {
+			position: fixed;
+			top: $modal-gap;
+			bottom: $modal-gap;
+			left: $modal-gap;
+			right: $modal-gap;
+			color: $editor-color;
+			background: $editor-bg;
+			box-shadow: $shadow-lg;
+			box-sizing: border-box;
+			z-index: 9999999;
+			* {
+				color: $editor-color;
+				box-sizing: border-box;
+			}
+		}
+		&__header {
+			display: flex;
+			flex-flow: row;
+			flex-wrap: nowrap;
+			justify-content: space-between;
+			align-items: center;
+			padding: $item-margin;
+			padding-bottom: 0;
+			h1 {
+				margin: 0;
+			}
+		}
+		&__loader {
+			display: none;
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			width: 100%;
+			height: 100%;
+			background: rgba($editor-bg, 0.1);
+			z-index: 99999999;
+			cursor: wait;
+		}
+		&__backdrop {
+			position: fixed;
+			top: 0;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			background: $backdrop-bg;
+			z-index: 999999;
+		}
+	}
+	&-items {
+		display: flex;
+		flex-flow: row;
+		flex-wrap: wrap;
+		justify-content: flex-start;
+		align-items: stretch;
+		width: 100%;
+		height: calc(100% - #{$modal-header-height + $item-margin});
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		overflow-x: hidden;
+		overflow-y: scroll;
+		&__no-items-found {
+			padding: $padding;
+			p {
+				margin: 0;
+			}
+		}
+		&::-webkit-scrollbar {
+			width: $scrollbar-width;
+			overflow: hidden;
+			&-track {
+				box-shadow: $inset-shadow;
+			}
+			&-thumb {
+				background: $editor-color;
+				border-radius: $scrollbar-thumb-border-radius;
+				box-shadow: $shadow;
+			}
+		}
+	}
+	&-item {
+		width: 25%;
+		height: $item-height;
+		margin: 0;
+		padding: $item-margin;
+		flex: 0 0 25%;
+		&__inner {
+			position: relative;
+			height: 100%;
+			padding: $padding;
+			overflow: hidden;
+			box-shadow: $inset-shadow-lg;
+		}
+		&__svg {
+			width: 100%;
+			height: 100%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			overflow: hidden;
+			svg {
+				display: block;
+				width: 100%;
+				height: auto;
+			}
+		}
+		&__overlapped-link {
+			position: absolute;
+			width: 100%;
+			height: 100%;
+			top: 0;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			font-size: $title-font-size;
+			line-height: 1em;
+			text-decoration: none;
+			z-index: 2;
+			&:hover {
+				text-decoration: none;
+			}
+			&:focus {
+				outline: none;
+			}
+			span {
+				display: inline-block;
+				margin-top: $padding-sm;
+				margin-left: $padding-sm;
+				padding: $padding-sm;
+				background: $editor-bg;
+				box-shadow: $shadow;
+			}
+		}
+	}
+	&-pagination {
+		padding: 0 $item-margin;
+		&__inner {
+			display: flex;
+			flex-flow: row;
+			flex-wrap: nowrap;
+			justify-content: flex-end;
+			align-items: center;
+		}
+		&__total-items {
+			margin-right: $padding-sm;
+			p {
+				margin: 0;
+			}
+		}
+	}
+}
+
+@media screen and (max-width: $mobile-breakpoint) {
+	.wpg {
+		&-modal {
+			&__window {
+				top: $modal-gap / 2;
+				bottom: $modal-gap / 2;
+				left: $modal-gap / 2;
+				right: $modal-gap / 2;
+			}
+		}
+		&-item {
+			width: 100%;
+			flex: 0 0 100%;
+		}
+	}
+}
+
+@media screen and (min-width: $desktop-breakpoint) {
+	.wpg {
+		&-item {
+			height: $item-height-lg;
+		}
+	}
+}

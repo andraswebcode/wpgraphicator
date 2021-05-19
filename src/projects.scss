@@ -1,0 +1,291 @@
+@import './styles/variables';
+@import './styles/projects-variables';
+@import './styles/common';
+@import "styles/fontawesome";
+
+#wpwrap {
+	background: $editor-bg;
+}
+
+#wpcontent {
+	padding: 0;
+}
+
+#wpfooter {
+	color: $editor-color;
+}
+
+.wpg {
+	&-projects {
+		position: relative;
+		color: $editor-color;
+		background: $editor-bg;
+		box-sizing: border-box;
+		* {
+			color: $editor-color;
+			box-sizing: border-box;
+		}
+	}
+	&-header {
+		display: flex;
+		flex-flow: row;
+		flex-wrap: wrap;
+		justify-content: flex-start;
+		align-items: stretch;
+		padding: $padding;
+		padding-bottom: 0;
+		&__title {
+			margin: 0;
+			margin-right: $padding;
+			line-height: 1;
+		}
+		&__import-button {
+			margin-right: $padding-sm;
+		}
+	}
+	&-items {
+		display: flex;
+		flex-flow: row;
+		flex-wrap: wrap;
+		justify-content: flex-start;
+		align-items: stretch;
+		&__no-items-found {
+			padding: $padding;
+			p {
+				margin: 0;
+			}
+		}
+	}
+	&-item {
+		width: 25%;
+		height: $item-height;
+		padding: $item-margin;
+		flex: 0 0 25%;
+		&__inner {
+			position: relative;
+			height: 100%;
+			padding: $padding;
+			overflow: hidden;
+			box-shadow: $inset-shadow-lg;
+			&.wpg-status-draft .wpg-item__overlapped-link {
+				background: rgba($editor-bg, 0.8);
+			}
+		}
+		&__svg {
+			width: 100%;
+			height: 100%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			overflow: hidden;
+			svg {
+				display: block;
+				width: 100%;
+				height: auto;
+			}
+		}
+		&__overlapped-link {
+			position: absolute;
+			width: 100%;
+			height: 100%;
+			top: 0;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			font-size: $title-font-size;
+			line-height: 1em;
+			text-decoration: none;
+			z-index: 2;
+			&:hover {
+				text-decoration: none;
+			}
+			&:focus {
+				outline: none;
+			}
+			span {
+				display: inline-block;
+				margin-top: $padding-sm;
+				margin-left: $padding-sm;
+				padding: $padding-sm;
+				background: $editor-bg;
+				box-shadow: $shadow;
+			}
+		}
+		&__draft {
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			width: 100%;
+			height: 100%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			pointer-events: none;
+			z-index: 4;
+			p {
+				font-size: $title-font-size;
+				text-shadow: $shadow;
+			}
+		}
+		&__row-actions {
+			display: flex;
+			flex-flow: row;
+			flex-wrap: nowrap;
+			justify-content: flex-start;
+			align-items: center;
+			position: absolute;
+			left: $padding-sm;
+			right: $padding-sm;
+			bottom: $padding-sm;
+			padding: $padding-sm;
+			background: $editor-bg;
+			box-shadow: $shadow;
+			z-index: 6;
+			.wpg-input {
+				cursor: pointer;
+			}
+		}
+		&__export-button {
+			position: absolute;
+			top: $padding-sm;
+			right: $padding-sm;
+			background: $editor-bg;
+			box-shadow: $shadow;
+			z-index: 6;
+			&:focus {
+				background: $editor-bg;
+			}
+		}
+	}
+	&-loader {
+		display: none;
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		width: 100%;
+		height: 100%;
+		background: rgba($editor-bg, 0.1);
+		z-index: 999;
+		cursor: wait;
+	}
+	&-pagination {
+		padding: 0 $padding;
+		&__inner {
+			display: flex;
+			flex-flow: row;
+			flex-wrap: nowrap;
+			justify-content: flex-end;
+			align-items: center;
+		}
+		&__total-items {
+			margin-right: $padding-sm;
+			p {
+				margin: 0;
+			}
+		}
+	}
+	&-preloader {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		position: absolute;
+		width: 100%;
+		height: 100vh;
+		top: 0;
+		left: 0;
+		right: 0;
+		background: $editor-bg;
+		z-index: 99999;
+		h3 {
+			text-align: center;
+		}
+		&__animation {
+			position: relative;
+			height: 10px;
+			span {
+				position: absolute;
+				top: 0;
+				transform: translateX(-50%);
+				width: 10px;
+				height: 10px;
+				border-radius: 100%;
+				background: $editor-color;
+				animation-name: preloader;
+				animation-duration: 1s;
+				animation-iteration-count: infinite;
+				animation-timing-function: ease;
+			}
+			&-point-1 {
+				animation-delay: 0.1s;
+				left: 5%;
+			}
+			&-point-2 {
+				animation-delay: 0.2s;
+				left: 35%;
+			}
+			&-point-3 {
+				animation-delay: 0.3s;
+				left: 65%;
+			}
+			&-point-4 {
+				animation-delay: 0.4s;
+				left: 95%;
+			}
+		}
+	}
+	&-notification {
+		display: none;
+		position: fixed;
+		bottom: $notification-bottom - $notification-spacing;
+		left: $notification-left;
+		padding: $padding;
+		margin-bottom: $notification-spacing;
+		background: $editor-bg;
+		box-shadow: $shadow;
+		z-index: 99999;
+		&-success {
+			background: $notification-success-bg;
+		}
+		&-warning {
+			background: $notification-warning-bg;
+		}
+		&-error {
+			background: $notification-error-bg;
+		}
+		&-no-js & {
+			display: block;
+			color: $editor-color;
+		}
+	}
+}
+
+@media screen and (max-width: $mobile-breakpoint) {
+	.wpg {
+		&-item {
+			width: 100%;
+			flex: 0 0 100%;
+		}
+	}
+}
+
+@media screen and (min-width: $desktop-breakpoint) {
+	.wpg {
+		&-item {
+			height: $item-height-lg;
+		}
+	}
+}
+
+@keyframes preloader {
+	0% {
+		opacity: 0;
+	} 50% {
+		opacity: 1;
+	} 100% {
+		opacity: 0;
+	}
+}

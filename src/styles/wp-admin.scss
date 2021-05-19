@@ -1,0 +1,25 @@
+#wpwrap {
+	background: $editor-bg;
+}
+
+body.js #adminmenumain {
+	display: none;
+}
+
+body.js #wpcontent {
+	margin: 0 !important;
+	padding: 0;
+}
+
+body.js #wpfooter {
+	margin: 0;
+	color: $editor-color;
+}
+
+html.wp-toolbar {
+	.wpg-editor {
+		&__preloader {
+			top: $wp-toolbar-height;
+		}
+	}
+}

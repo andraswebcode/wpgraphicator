@@ -1,0 +1,302 @@
+.wpg-timeline {
+	position: relative;
+	height: $timeline-height;
+	padding: $padding;
+	overflow: hidden;
+	cursor: default;
+	&:after {
+		content: "";
+		position: absolute;
+		right: $padding + $scrollbar-width;
+		bottom: $padding;
+		pointer-events: none;
+		box-shadow: $inset-shadow-lg;
+		width: calc(100% - #{$timeline-sidebar-width + 2 * $padding + $scrollbar-width});
+		height: calc(100% - #{$timeline-top-height + 2 * $padding});
+		z-index: 2;
+	}
+	&__current-time-wrapper {
+		position: absolute;
+		width: calc(100% - #{$padding * 2 + $timeline-sidebar-width});
+		height: calc(100% - #{$padding * 2});
+		top: $padding;
+		right: $padding;
+		overflow: hidden;
+		pointer-events: none;
+		touch-action: none;
+		z-index: 9999;
+	}
+	&__current-time {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: $timeline-arrow-width;
+		height: $timeline-height;
+		transform: translateX(-50%);
+		pointer-events: all;
+		cursor: e-resize;
+		&:focus {
+			outline: none;
+		}
+		&:after {
+			content: "";
+			display: block;
+			width: calc(50% - 1px);
+			height: 100%;
+			margin-top: - $timeline-top-height;
+			border-right: solid 2px $editor-color;
+		}
+		&-arrow {
+			display: block;
+			width: 0;
+			height: 0;
+			border-top: $timeline-top-height solid $editor-color;
+			border-left: $timeline-arrow-width / 2 solid transparent;
+			border-right: $timeline-arrow-width / 2 solid transparent;
+			cursor: e-resize;
+		}
+	}
+	.wpg-subview__timeline {
+		&-shape {
+			height: calc(100% - #{$timeline-top-height});
+			overflow-y: scroll;
+		}
+		&-timeslider {
+			position: relative;
+			overflow: hidden;
+			flex-grow: 1;
+		}
+		&-sidebar-track,
+		&-track {
+			display: none;
+		}
+		&-track-point {
+			display: block;
+			position: relative;
+			width: 100%;
+			height: 100%;
+		}
+	}
+	&-top {
+		display: flex;
+		flex-flow: row;
+		flex-wrap: nowrap;
+		height: $timeline-top-height;
+	}
+	&-topbar {
+		display: flex;
+		flex-wrap: nowrap;
+		align-items: center;
+		width: $timeline-sidebar-width;
+		height: 100%;
+		flex-basis: $timeline-sidebar-width;
+	}
+	&-timeslider {
+		position: absolute;
+		width: auto;
+		height: 100%;
+		top: 0;
+		left: 0;
+		cursor: default;
+		cursor: grab;
+		* {
+			pointer-events: none;
+		}
+		&-cursor {
+			position: absolute;
+			top: 0;
+			width: 0;
+		}
+		&-cursor {
+			height: 100%;
+			border-right: solid 1px $editor-color;
+		}
+		&-seconds {
+			display: flex;
+			flex-flow: row;
+			flex-wrap: nowrap;
+			width: 100%;
+			height: 100%;
+		}
+		&-second {
+			position: relative;
+			width: $timeline-second-width;
+			height: 75%;
+			border-left: solid 1px $editor-color;
+			& > span {
+				padding-left: $timeline-number-padding;
+			}
+		}
+		&-deciseconds {
+			display: flex;
+			flex-flow: row;
+			flex-wrap: nowrap;
+			position: absolute;
+			top: 0;
+			left: 0;
+			bottom: 0;
+			right: 0;
+			width: 100%;
+			height: 100%;
+			& > span {
+				flex-grow: 1;
+				height: 50%;
+				&:not(:last-child) {
+					border-right: solid 1px rgba($editor-color, 0.4);
+				}
+				&:nth-child(5) {
+					height: 75%;
+				}
+			}
+		}
+	}
+	&-shape {
+		display: flex;
+		flex-flow: row;
+		flex-wrap: nowrap;
+		&.active {
+			background: $track-active-bg;
+			.wpg-subview__timeline-sidebar-track,
+			.wpg-subview__timeline-track {
+				display: block;
+			}
+			.wpg-timeline-shape__process-bar-strip {
+				opacity: 1;
+				background: $track-point-active-color;
+			}
+		}
+		&:focus {
+			outline: none;
+		}
+		&__left-sidebar {
+			width: $timeline-sidebar-width;
+			flex-basis: $timeline-sidebar-width;
+			.wpg-button {
+				padding: $padding-sm;
+			}
+		}
+		&__tracks {
+			position: relative;
+			overflow: hidden;
+			flex-grow: 1;
+			&-inner {
+				position: absolute;
+				width: 100%;
+				top: 0;
+				left: 0;
+			}
+		}
+		&__title {
+			display: flex;
+			align-items: center;
+			width: 100%;
+			height: $timeline-track-title-height;
+			line-height: $timeline-track-title-height;
+			vertical-align: middle;
+			background: $title-bg;
+		}
+		&__process-bar {
+			position: relative;
+			&-strip {
+				display: block;
+				position: absolute;
+				height: 50%;
+				top: 25%;
+				background: $editor-color;
+				opacity: 0.4;
+				border-radius: $process-strip-border-radius;
+				box-shadow: $shadow;
+				&:focus {
+					outline: none;
+				}
+			}
+		}
+	}
+	&-sidebar-track,
+	&-track {
+		height: $timeline-track-height;
+		line-height: $timeline-track-height;
+		vertical-align: middle;
+	}
+	&-sidebar-track {
+		display: flex;
+		align-items: center;
+		padding-left: $padding-sm;
+		&__title {
+			flex: 1 0 auto;
+		}
+	}
+	&-track {
+		box-shadow: $track-shadow;
+	}
+	&-track-point {
+		display: block;
+		position: absolute;
+		top: 50%;
+		width: 0;
+		height: 0;
+		z-index: 9999;
+		&-diamond {
+			display: block;
+			width: $timeline-track-point-size;
+			height: $timeline-track-point-size;
+			background: $track-point-color;
+			transform: translate(-50%, -50%) rotate(45deg);
+			touch-action: none;
+			&:focus {
+				outline: none;
+			}
+		}
+		&.active {
+			.wpg-timeline-track-point-diamond {
+				background: $track-point-active-color;
+			}
+		}
+		.wpg-popup {
+			width: $track-point-popup-width;
+		}
+		.wpg-input-wrapper {
+			display: block;
+		}
+		&__path {
+			&-input-wrapper {
+				overflow-y: scroll;
+				max-height: $track-point-path-input-height;
+			}
+			&-command {
+				display: flex;
+				flex-wrap: wrap;
+				justify-content: flex-end;
+				position: relative;
+				min-height: 1.2em;
+				span {
+					position: absolute;
+					top: $path-command-input-margin-y;
+					left: $path-command-input-margin-x;
+				}
+				.wpg-input {
+					width: $path-command-input-width;
+					flex-basis: $path-command-input-width;
+					margin: $path-command-input-margin-y $path-command-input-margin-x;
+				}
+			}
+			&-input {}
+		}
+		&__polyline {
+			&-input-wrapper {
+				overflow-y: scroll;
+				max-height: $track-point-path-input-height;
+			}
+			&-point {
+				display: flex;
+				flex-wrap: nowrap;
+				justify-content: flex-start;
+				.wpg-input {
+					width: 50%;
+					flex-basis: 50%;
+					margin: $path-command-input-margin-y $path-command-input-margin-x;
+				}
+			}
+		}
+	}
+}

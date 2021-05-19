@@ -1,0 +1,100 @@
+@import "./../node_modules/@fortawesome/fontawesome-free/scss/variables";
+@import "./../node_modules/@fortawesome/fontawesome-free/scss/mixins";
+@import "./../node_modules/@fortawesome/fontawesome-free/scss/core";
+
+.fa-cog:before {
+	content: fa-content($fa-var-cog);
+}
+.fa-mouse-pointer:before {
+	content: fa-content($fa-var-mouse-pointer);
+}
+.fa-pen:before {
+	content: fa-content($fa-var-pen);
+}
+.fa-square:before {
+	content: fa-content($fa-var-square);
+}
+.fa-circle:before {
+	content: fa-content($fa-var-circle);
+}
+.fa-font:before {
+	content: fa-content($fa-var-font);
+}
+.fa-pen-nib:before {
+	content: fa-content($fa-var-pen-nib);
+}
+.fa-draw-polygon:before {
+	content: fa-content($fa-var-draw-polygon);
+}
+.fa-bezier-curve:before {
+	content: fa-content($fa-var-bezier-curve);
+}
+.fa-star:before {
+	content: fa-content($fa-var-star);
+}
+.fa-image:before {
+	content: fa-content($fa-var-image);
+}
+.fa-tint:before {
+	content: fa-content($fa-var-tint);
+}
+.fa-fill-drip:before {
+	content: fa-content($fa-var-fill-drip);
+}
+.fa-minus:before {
+	content: fa-content($fa-var-minus);
+}
+.fa-search-plus:before {
+	content: fa-content($fa-var-search-plus);
+}
+.fa-search-minus:before {
+	content: fa-content($fa-var-search-minus);
+}
+.fa-angle-down:before {
+	content: fa-content($fa-var-angle-down);
+}
+.fa-angle-up:before {
+	content: fa-content($fa-var-angle-up);
+}
+.fa-angle-left:before {
+	content: fa-content($fa-var-angle-left);
+}
+.fa-angle-right:before {
+	content: fa-content($fa-var-angle-right);
+}
+.fa-copy:before {
+	content: fa-content($fa-var-copy);
+}
+.fa-grip-vertical:before {
+	content: fa-content($fa-var-grip-vertical);
+}
+.fa-times:before {
+	content: fa-content($fa-var-times);
+}
+.fa-play:before {
+	content: fa-content($fa-var-play);
+}
+.fa-pause:before {
+	content: fa-content($fa-var-pause);
+}
+.fa-plus:before {
+	content: fa-content($fa-var-plus);
+}
+.fa-edit:before {
+	content: fa-content($fa-var-edit);
+}
+.fa-eye:before {
+	content: fa-content($fa-var-eye);
+}
+.fa-eye-slash:before {
+	content: fa-content($fa-var-eye-slash);
+}
+.fa-trash-alt:before {
+	content: fa-content($fa-var-trash-alt);
+}
+.fa-trash-restore-alt:before {
+	content: fa-content($fa-var-trash-restore-alt);
+}
+.fa-download:before {
+	content: fa-content($fa-var-download);
+}

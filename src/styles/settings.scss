@@ -1,0 +1,95 @@
+.wpg-settings {
+	width: $settings-width;
+	padding: $padding;
+	overflow-y: scroll;
+	&-project {
+		&__copy-shortcode {
+			&-wrapper {
+				display: flex;
+				flex-flow: row;
+				flex-wrap: nowrap;
+				.wpg-button {
+					padding: $button-padding-sm;
+				}
+			}
+		}
+		&__size,
+		&__duration {
+			display: flex;
+		}
+	}
+	&-stats {}
+	&-layer {
+		display: flex;
+		align-items: center;
+		&.active {
+			background: $track-active-bg;
+		}
+		&__title {}
+		.wpg-button {
+			padding: $button-padding-sm;
+		}
+	}
+	&-shape {
+		.wpg-input-wrapper {
+			width: 100%;
+			position: relative;
+		}
+		&__add-to-stream-button {
+			position: absolute;
+			top: $padding-sm + $label-margin-y - 2px;
+			right: $padding-sm;
+			padding: $button-padding-sm;
+		}
+		&__transform {
+			&-translate,
+			&-scale,
+			&-skew,
+			&-rotate {
+				display: flex;
+				flex-wrap: wrap;
+				.wpg-input-wrapper {
+					flex: 1 0 50%;
+				}
+			}
+		}
+		&__dimensions {
+			display: flex;
+			flex-wrap: wrap;
+			.wpg-input-wrapper {
+				flex: 1 0 50%;
+			}
+		}
+		&__path {
+			&-command {
+				display: flex;
+				flex-wrap: wrap;
+				justify-content: flex-end;
+				position: relative;
+				min-height: 1.2em;
+				span {
+					position: absolute;
+					top: $path-command-input-margin-y;
+					left: $path-command-input-margin-x;
+				}
+				.wpg-input {
+					width: $path-command-input-width;
+					flex-basis: $path-command-input-width;
+					margin: $path-command-input-margin-y $path-command-input-margin-x;
+				}
+			}
+		}
+		&__polyline {
+			&-point {
+				display: flex;
+				flex-wrap: nowrap;
+				justify-content: flex-start;
+				.wpg-input {
+					width: 50%;
+					flex-basis: 50%;
+					margin: $path-command-input-margin-y $path-command-input-margin-x;
+				}
+			}
+		}
+	}
+}

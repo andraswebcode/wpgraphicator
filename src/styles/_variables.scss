@@ -1,0 +1,92 @@
+// Colors
+
+$editor-color:					#efefef;
+$editor-bg:						#313131;
+$title-bg:						rgba(0, 0, 0, 0.2);
+$track-active-bg:				rgba(0, 0, 225, 0.2);
+$button-active-color:			#fff;
+$button-active-bg:				#00f;
+$tab-title-bg:					rgba(0, 0, 0, 0.1);
+$range-slider-handle-bg:		$button-active-bg;
+$track-point-color:				$editor-color;
+$track-point-active-color:		$button-active-bg;
+$notification-success-bg:		#080;
+$notification-warning-bg:		#880;
+$notification-error-bg:			#800;
+$backdrop-bg:					rgba(0, 0, 0, 0.5);
+
+// Dimensions
+
+$button-padding:				6px 12px;
+$button-padding-sm:				3px 6px;
+$label-margin-y:				12px;
+$label-margin-x:				0;
+$label-margin:					$label-margin-y $label-margin-x;
+$range-slider-height:			1em;
+$range-slider-handle-width:		2em;
+$range-slider-handle-height:	1.2em;
+$scrollbar-width:				10px;
+$scrollbar-thumb-border-radius:	5px;
+$workarea-height-sm:			300px;
+$workarea-height:				500px;
+$workarea-height-lg:			700px;
+$toolbar-width:					50px;
+$settings-width:				280px;
+$timeline-second-width:			100px;
+$timeline-number-padding:		2px;
+$timeline-height:				300px;
+$timeline-height-lg:			400px;
+$timeline-top-height:			30px;
+$timeline-sidebar-width:		150px;
+$timeline-track-title-height:	25px;
+$timeline-track-title-height-lg:30px;
+$timeline-track-height:			20px;
+$timeline-track-height-lg:		30px;
+$timeline-track-point-size:		12px;
+$timeline-track-point-size-lg:	18px;
+$timeline-arrow-width:			16px;
+$track-point-popup-width:		280px;
+$track-point-path-input-height:	120px;
+$shape-library-height:			200px;
+$padding:						20px;
+$padding-sm:					5px;
+$tab-padding:					6px 12px;
+$notification-bottom:			20px;
+$notification-left:				20px;
+$notification-spacing:			10px;
+$path-command-input-margin-x:	4px;
+$path-command-input-margin-y:	2px;
+$path-command-input-width:		35%;
+$keyboard-shortcuts-modal-width:450px;
+
+// Font
+
+$h1-font-size:					20px;
+$toolbar-icon-size:				1.2em;
+
+// Shadows
+
+$shadow:						0 0 5px rgba(0, 0, 0, 0.5);
+$shadow-lg:						0 0 20px rgba(0, 0, 0, 0.5);
+$inset-shadow:					inset $shadow;
+$inset-shadow-lg:				inset $shadow-lg;
+$tab-title-shadow:				inset 0 0 1px 1px rgba(0, 0, 0, 0.4);
+$track-shadow:					inset 0px 0px 5px 2px rgba(0, 0, 0, 0.8);
+
+// Borders
+
+$range-slider-border-radius:	5px;
+$process-strip-border-radius:	2px;
+
+// Responsive
+
+$mobile-breakpoint:				782px;
+$desktop-breakpoint:			1440px;
+
+// WP Admin
+
+$wp-toolbar-height:				32px;
+
+// Others
+
+$select-arrow-svg:				'data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%206l5%205%205-5%202%201-7%207-7-7%202-1z%22%20fill%3D%22%23EFEFEF%22%2F%3E%3C%2Fsvg%3E';

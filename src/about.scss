@@ -1,0 +1,152 @@
+@import './styles/variables';
+@import './styles/about-variables';
+@import './styles/common';
+
+#wpwrap {
+	background: $editor-bg;
+}
+
+#wpcontent {
+	padding: 0;
+}
+
+#wpfooter {
+	color: $editor-color;
+}
+
+.wpg-about {
+	padding: $padding;
+	color: $editor-color;
+	box-sizing: border-box;
+	* {
+		color: $editor-color;
+		box-sizing: border-box;
+	}
+	h1 {
+		margin: 0;
+		font-size: $h1-font-size;
+		line-height: 1;
+	}
+	h2 {
+		font-size: $h2-font-size;
+	}
+	p {
+		margin: 0;
+		font-size: $p-font-size;
+		line-height: 1;
+	}
+	small {
+		font-size: $small-font-size;
+	}
+	&__header {
+		display: flex;
+		flex-flow: row;
+		flex-wrap: nowrap;
+		align-items: center;
+		padding-bottom: $padding;
+		&-logo {
+			width: $logo-width;
+			img {
+				display: block;
+				width: 100%;
+				height: auto;
+				margin: $logo-margin;
+			}
+			small {
+				display: block;
+				text-align: center;
+			}
+		}
+		&-title {
+			padding-left: $padding;
+			h1 {
+				margin-bottom: $label-margin-y;
+			}
+		}
+	}
+	&__content {}
+	&__tab {
+		padding: 0;
+		margin: 0;
+		margin-left: $padding-sm;
+		box-shadow: $tab-title-shadow;
+		&:hover,
+		&:focus {
+			box-shadow: $tab-title-shadow;
+		}
+		&-wrapper {
+			display: flex;
+			flex-flow: row;
+			flex-wrap: nowrap;
+			list-style: none;
+			margin: 0;
+			padding: 0;
+		}
+		&-content {
+			display: flex;
+			flex-flow: row;
+			flex-wrap: wrap;
+			min-height: $workarea-height;
+			box-shadow: $inset-shadow-lg;
+			h2,
+			p {
+				margin: $label-margin-y 0;
+				line-height: 1.5;
+			}
+			a {
+				&:hover,
+				&:focus {
+					color: $button-active-color;
+					outline: none;
+					box-shadow: none;
+				}
+			}
+			li {
+				margin: $label-margin-y 0;
+				font-size: $p-font-size;
+				line-height: 1.5;
+			}
+			img {
+				max-width: 100%;
+				box-shadow: $shadow-lg;
+			}
+		}
+		&-column {
+			&-1,
+			&-2 {
+				padding: $padding;
+			}
+			&-1 {
+				flex: 1 0 100%;
+				width: 100%;
+			}
+			&-2 {
+				flex: 1 0 50%;
+				width: 50%;
+			}
+		}
+		a {
+			display: block;
+			padding: $label-margin-y $padding;
+			text-decoration: none;
+			color: $editor-color;
+			font-size: $p-font-size;
+			font-weight: bold;
+			&:focus {
+				outline: none;
+				box-shadow: none;
+			}
+		}
+	}
+}
+
+@media screen and (max-width: $mobile-breakpoint) {
+	.wpg-about {
+		&__tab {
+			&-column-2 {
+				flex: 1 0 100%;
+				width: 100%;
+			}
+		}
+	}
+}

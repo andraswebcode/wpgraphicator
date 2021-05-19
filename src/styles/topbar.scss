@@ -1,0 +1,115 @@
+.wpg-topbar {
+	display: flex;
+	flex-flow: row;
+	flex-wrap: nowrap;
+	justify-content: space-between;
+	align-items: center;
+	padding: $padding;
+	padding-bottom: 0;
+	.wpg-subview__topbar {
+		&-menu {}
+		&-save {
+			.wpg-topbar-open-settings-button {
+				display: none;
+			}
+		}
+	}
+	.wpg-subview__notification {
+		position: fixed;
+		bottom: $notification-bottom - $notification-spacing;
+		left: $notification-left;
+		z-index: 99999;
+		.wpg-notification {
+			width: 100%;
+			padding: $padding;
+			margin-bottom: $notification-spacing;
+			background: $editor-bg;
+			box-shadow: $shadow;
+			&-success {
+				background: $notification-success-bg;
+			}
+			&-warning {
+				background: $notification-warning-bg;
+			}
+			&-error {
+				background: $notification-error-bg;
+			}
+		}
+	}
+	&-menu {
+		display: flex;
+		flex-flow: row;
+		flex-wrap: nowrap;
+		ul {
+			list-style: none;
+			margin: 0;
+			padding: 0;
+		}
+		li {
+			margin: 0;
+		}
+		&__items {
+			display: flex;
+			flex-flow: row;
+			flex-wrap: nowrap;
+		}
+		&__item {
+			display: inline-block;
+			position: relative;
+			&-button {
+				display: block;
+				height: 100%;
+			}
+		}
+		&__dropdown-items {
+			position: absolute;
+			top: 100%;
+			left: 0;
+			white-space: nowrap;
+		}
+		&__dropdown-item {
+			&-button {
+				width: 100%;
+				text-align: initial;
+			}
+		}
+		&__modal {
+			position: fixed;
+			top: 50%;
+			left: 50%;
+			width: $settings-width;
+			transform: translate(-50%, -50%);
+			z-index: 99999;
+			.wpg-input-wrapper {
+				display: block;
+			}
+			&-lg {
+				width: $keyboard-shortcuts-modal-width;
+				height: 90vh;
+				overflow: hidden;
+			}
+		}
+	}
+	&-save {
+		display: flex;
+		flex-flow: row;
+		flex-wrap: nowrap;
+		justify-content: flex-end;
+		align-items: center;
+		width: 100%;
+		height: 100%;
+	}
+	&__loader {
+		display: none;
+		position: fixed;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		width: 100%;
+		height: 100%;
+		background: rgba($editor-bg, 0.1);
+		z-index: 999;
+		cursor: wait;
+	}
+}
