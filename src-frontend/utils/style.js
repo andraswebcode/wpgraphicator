@@ -1,6 +1,9 @@
 import $ from 'jquery';
 import {
-	separateColorOpacity
+	separateColorOpacity,
+	parseGradient,
+	rotatePoint,
+	clamp
 } from './utils.js';
 
 const styleProps = {
@@ -23,7 +26,7 @@ export const getShapeStyles = props => {
 	let output = {};
 	$.each(styleProps, (jsVal, cssVal) => {
 		if (jsVal === 'fill' || jsVal === 'stroke'){
-			if (props[jsVal]){
+			if (props[jsVal] && props[jsVal].indexOf('GRADIENT') !== 0){ // Do nothing here, if this is a gradient.
 				$.extend(output, separateColorOpacity(jsVal, props[jsVal]));
 			}
 		} else {
@@ -105,4 +108,50 @@ export const getShapeAttrs = (props = {}, type) => {
 		break;
 	}
 	return output;
+};
+
+/**
+ *
+ * @since 1.0.0
+ * @param {jQuery} gradientElement
+ * @param {string} gradientValue
+ */
+
+export const setGradient = (gradientElement, gradientValue) => {
+	const {
+		type,
+		angle,
+		colorStops
+	} = parseGradient(gradientValue);
+	const p1 = rotatePoint({
+		x:0,
+		y:0.5
+	}, {
+		x:0.5,
+		y:0.5
+	}, angle);
+	const p2 = rotatePoint({
+		x:1,
+		y:0.5
+	}, {
+		x:0.5,
+		y:0.5
+	}, angle);
+	gradientElement.attr({
+		x1:clamp(p1.x),
+		y1:clamp(p1.y),
+		x2:clamp(p2.x),
+		y2:clamp(p2.y)
+	});
+	if (colorStops){
+		gradientElement.find('stop').each((i, el) => {
+			const stop = colorStops[i] || {};
+			const color = separateColorOpacity('stop', stop.color || '');
+			$(el).attr({
+				'offset':'' + ((stop.offset || 0) * 100) + '%',
+				'stop-color':color['stop'],
+				'stop-opacity':color['stop-opacity']
+			});
+		});
+	}
 };

@@ -3,7 +3,8 @@ import $ from 'jquery';
 import {
 	toFixed,
 	clamp,
-	min
+	min,
+	svgShapes
 } from './utils/utils.js';
 import {
 	getTransformMatrix,
@@ -11,7 +12,8 @@ import {
 } from './utils/matrix.js';
 import {
 	getShapeStyles,
-	getShapeAttrs
+	getShapeAttrs,
+	setGradient
 } from './utils/style.js';
 
 export const getKeyframes = shape => (shape.properties || []).reduce((result, prop) => {
@@ -32,22 +34,36 @@ export const getKeyframes = shape => (shape.properties || []).reduce((result, pr
 
 export const update = (target, svgElement, shapeId, type) => {
 	const wrapper = svgElement.find(`.${shapeId}`);
-	const shape = wrapper.children().first();
+	const shape = wrapper.find(svgShapes);
 	const defMatrix = (wrapper.attr('transform') || '')
 		.replace('matrix(', '')
 		.replace(')', '')
 		.split(' ')
 		.map(toFixed);
+	let fillGradient, strokeGradient;
+	if (shape.attr('fill') && shape.attr('fill').indexOf('url(#') === 0){
+		fillGradient = wrapper.find(shape.attr('fill').replace('url(', '').replace(')', ''));
+	}
+	if (shape.attr('stroke') && shape.attr('stroke').indexOf('url(#') === 0){
+		strokeGradient = wrapper.find(shape.attr('stroke').replace('url(', '').replace(')', ''));
+	}
 	return () => {
 		const matrix = getTransformMatrix({
 			...decompose(defMatrix),
 			...target
 		}).map(toFixed).join(' ');
 		wrapper.attr('transform', `matrix(${matrix})`);
-		shape.attr({
-			...getShapeAttrs(target, type),
-			...getShapeStyles(target)
-		});
+		if (type === 'group'){
+			wrapper.attr({
+				...getShapeAttrs(target, type),
+				...getShapeStyles(target)
+			});
+		} else {
+			shape.attr({
+				...getShapeAttrs(target, type),
+				...getShapeStyles(target)
+			});
+		}
 		if (type === 'i-text' && target.fontSize){
 			if (shape.length && shape[0].getBBox){
 				const textAnchor = shape.attr('text-anchor');
@@ -61,6 +77,12 @@ export const update = (target, svgElement, shapeId, type) => {
 				const offsetY = - ((height + y) / 2);
 				shape.attr('transform', `translate(${offsetX} ${offsetY})`);
 			}
+		}
+		if (fillGradient && target.fill){
+			setGradient(fillGradient, target.fill);
+		}
+		if (strokeGradient && target.stroke){
+			setGradient(strokeGradient, target.stroke);
 		}
 	};
 };

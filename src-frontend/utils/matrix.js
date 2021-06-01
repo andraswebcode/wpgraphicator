@@ -7,16 +7,6 @@ const multiply = (a, b) => [
 	a[1] * b[4] + a[3] * b[5] + a[5]
 ];
 
-const getRotateMatrix = ({angle}) => {
-	if (!angle){
-		return [1, 0, 0, 1, 0, 0];
-	}
-	var theta = angle * (Math.PI / 180);
-	var sin = Math.sin(theta);
-	var cos = Math.cos(theta);
-	return [cos, sin, -sin, cos, 0, 0];
-};
-
 const getDimensionMatrix = ({scaleX, scaleY, skewX, skewY}) => {
 	var x = scaleX === undefined ? 1 : scaleX;
 	var y = scaleY === undefined ? 1 : scaleY;
@@ -34,6 +24,16 @@ const getDimensionMatrix = ({scaleX, scaleY, skewX, skewY}) => {
 		);
 	}
 	return matrix;
+};
+
+const getRotateMatrix = ({angle}) => {
+	if (!angle){
+		return [1, 0, 0, 1, 0, 0];
+	}
+	var theta = angle * (Math.PI / 180);
+	var sin = Math.sin(theta);
+	var cos = Math.cos(theta);
+	return [cos, sin, -sin, cos, 0, 0];
 };
 
 export const decompose = m => {

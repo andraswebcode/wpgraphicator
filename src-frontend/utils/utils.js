@@ -1,6 +1,14 @@
 import $ from 'jquery';
 
 /**
+ * List of available SVG shapes.
+ * @return {string}
+ * @since 1.1.0
+ */
+
+export const svgShapes = 'rect,circle,ellipse,line,polygon,polyline,path,image,text';
+
+/**
  *
  * @param {float|int} value
  * @param {float|int} min
@@ -67,4 +75,62 @@ export function min(collection = [], iteratee) {
 		}
 	});
 	return result;
+}
+
+/**
+ *
+ * @param {string} gradient Serialized gradient values.
+ * @return {object}
+ * @since 1.1.0
+ */
+
+export function parseGradient(gradient = ''){
+	if (!parseGradient.cache){
+		parseGradient.cache = {};
+	}
+	if (parseGradient.cache[gradient]){
+		return parseGradient.cache[gradient];
+	}
+	const datas = gradient.split(';');
+	if (datas[0] !== 'GRADIENT'){
+		return {};
+	}
+	const type = datas[1] || 'linear';
+	const angle = parseFloat(datas[2]) || 0;
+	const colorStops = datas.slice(3).map(data => {
+		const _data = data.split('_');
+		return {
+			color:_data[0],
+			offset:parseFloat(_data[1])
+		};
+	});
+	parseGradient.cache[gradient] = {
+		type,
+		angle,
+		colorStops
+	};
+	return parseGradient.cache[gradient];
+}
+
+/**
+ *
+ * @param {object} point
+ * @param {object} center
+ * @param {float} angle
+ * @return {object}
+ * @since 1.1.0
+ */
+
+export function rotatePoint(point = {}, center = {}, angle = 0) {
+	point.x -= center.x;
+	point.y -= center.y;
+	const radian = angle * (Math.PI / 180);
+	const sin = Math.sin(radian);
+	const cos = Math.cos(radian);
+	const rx = point.x * cos - point.y * sin;
+	const ry = point.x * sin + point.y * cos;
+	return {
+		x:toFixed(rx + center.x),
+		y:toFixed(ry + center.y)
+	};
 }
