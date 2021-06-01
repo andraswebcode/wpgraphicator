@@ -26,7 +26,9 @@ import {
 	animatables,
 	parsePoints,
 	clamp,
-	toFixed
+	toFixed,
+	serializeGradient,
+	parseGradient
 } from './../utils/utils.js';
 import {
 	FRACTION_DIGITS,
@@ -162,6 +164,11 @@ export default Subview.extend(/** @lends TimelineTrackPoint.prototype */{
 			width:COLOR_PICKER_WIDTH,
 			change:throttle((e, {color}) => this._changeValueWithPlugin(color.toString()), 200)
 		});
+		this.$('.wpg-gradient-picker').gradientPicker({
+			width:COLOR_PICKER_WIDTH,
+			gradient:parseGradient(this.model.get('value')),
+			change:throttle((e, {gradient}) => this._changeValueWithPlugin(serializeGradient(gradient)), 200)
+		});
 		this.$('.wpg-range-slider').rangeSlider({
 			value:this.model.get('value'),
 			change:throttle((e, {value}) => this._changeValueWithPlugin(value), 200)
@@ -255,7 +262,7 @@ export default Subview.extend(/** @lends TimelineTrackPoint.prototype */{
 		const property = this.model.get('property');
 		this.model.set('value', value);
 		if (replaceCollidedParams[property]){
-			shape.set(replaceCollidedParams[property](value));
+			shape.set(property, replaceCollidedParams[property](value));
 		} else {
 			shape.set(property, value);
 		}
@@ -279,7 +286,7 @@ export default Subview.extend(/** @lends TimelineTrackPoint.prototype */{
 		const value = parseFloat(target.val()) || 0;
 		this.model.set('value', value);
 		if (replaceCollidedParams[property]){
-			shape.set(replaceCollidedParams[property](value));
+			shape.set(property, replaceCollidedParams[property](value));
 		} else {
 			shape.set(property, value);
 		}

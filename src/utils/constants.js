@@ -26,6 +26,9 @@ export const BORDER_COLOR = '#bbbbff';
 export const CORNER_COLOR = '#bbbbff';
 export const ACTIVE_CORNER_COLOR = '#0000ff';
 export const CORNER_SIZE = 8;
+export const SELECTION_COLOR = 'rgba(0, 0, 255, 0.2)';
+export const SELECTION_BORDER_COLOR = '#0000ff';
+export const ACTIVE_SELECTION_DASH_ARRAY = [10, 10];
 
 export const TEXT_CURSOR_COLOR = '#aaaaaa';
 
@@ -37,3 +40,6 @@ export const DEFAULT_ACTIVE_SETTINGS_TABS = [
 ];
 
 export const MOBILE_BREAKPOINT = 782;
+
+export const MAX_SVG_FILE_SIZE = 5000000;
+export const MAX_SVG_NUM_OF_SHAPES = 100;

@@ -5,6 +5,8 @@ import {
 import {
 	Point,
 	Shadow,
+	Gradient,
+	Color,
 	util
 } from 'fabric';
 import {
@@ -12,7 +14,9 @@ import {
 	isUndefined,
 	each,
 	pick,
-	isEqual
+	isEqual,
+	isString,
+	isEmpty
 } from 'underscore';
 
 import {
@@ -24,7 +28,8 @@ const {
 } = i18n;
 
 const {
-	parsePath
+	parsePath,
+	qrDecompose
 } = util;
 
 /**
@@ -469,6 +474,18 @@ export const replaceCollidedParams = {
 	strokeDashArray:replacement => replacement.split(' ').map(n => parseFloat(n)).filter(n => !_isNaN(n)),
 	path:parsePath,
 	points:parsePoints,
+	fill:replacement => {
+		if (isString(replacement) && replacement.indexOf('GRADIENT') === 0){ // In case of gradient.
+			return parseGradient(replacement);
+		}
+		return replacement; // In case of color.
+	},
+	stroke:replacement => {
+		if (isString(replacement) && replacement.indexOf('GRADIENT') === 0){ // In case of gradient.
+			return parseGradient(replacement);
+		}
+		return replacement; // In case of color.
+	},
 	shadow:replacement => new Shadow(replacement)
 };
 
@@ -608,4 +625,85 @@ export function getControlPoint2(path, i) {
 		return `c1${i + 1}`;
 	}
 	return '';
+}
+
+/**
+ *
+ * @param {string} gradient Serialized gradient values.
+ * @return {fabric.Gradient}
+ * @since 1.1.0
+ */
+
+export function parseGradient(gradient = ''){
+	if (!isString(gradient)){
+		return new Gradient();
+	}
+	if (!parseGradient.cache){
+		parseGradient.cache = {};
+	}
+	if (parseGradient.cache[gradient]){
+		return parseGradient.cache[gradient];
+	}
+	const datas = gradient.split(';');
+	if (datas[0] !== 'GRADIENT'){
+		return new Gradient();
+	}
+	const type = datas[1] || 'linear';
+	const angle = parseFloat(datas[2]) || 0;
+	const colorStops = datas.slice(3).map(data => {
+		const _data = data.split('_');
+		const color = separateColorOpacity('stop', _data[0]);
+		return {
+			color:color['stop'],
+			opacity:color['stop-opacity'],
+			offset:parseFloat(_data[1])
+		};
+	});
+	parseGradient.cache[gradient] = new Gradient({
+		type,
+		angle,
+		colorStops
+	});
+	return parseGradient.cache[gradient];
+}
+
+/**
+ *
+ * Schema example: 'GRADIENT;linear;45;rgb(0,0,0)_0;rgba(0, 0, 0, 0.1)_1'
+ * @param {fabric.Gradient|object}
+ * @return {string}
+ * @since 1.1.0
+ */
+
+export function serializeGradient(gradient = {}){
+	if (isEmpty(gradient)){
+		return '';
+	}
+	const type = gradient.type === 'linear' ? 'linear' : 'radial';
+	const angle = gradient.angle || 0;
+	const colorStops = (gradient.colorStops || [])
+	.slice()
+	.sort((a, b) => (a.offset - b.offset))
+	.map(({color, offset, opacity}) => {
+		const c = new Color(color);
+		if (!isUndefined(opacity)){
+			c.setAlpha(opacity);
+		}
+		return `${c.toRgba()}_${offset}`;
+	}).join(';');
+	return `GRADIENT;${type};${angle};${colorStops}`;
+}
+
+/**
+ * Returns the number of shapes in an SVG string.
+ * @param {string} svgString
+ * @return {int}
+ * @since 1.1.0
+ */
+
+export function countShapesInSVGString(svgString = ''){
+	if (!svgString){
+		return 0;
+	}
+	return svgString.match(/(\<)(path|circle|poly|ellipse|rect|line|image|text)/g)?.length || 0;
 }

@@ -1,10 +1,12 @@
 import $ from 'jquery';
 import {
 	isArray,
-	isString
+	isString,
+	pick
 } from 'underscore';
 import {
-	toFixed
+	toFixed,
+	separateColorOpacity
 } from './utils.js';
 
 const bg = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAAHnlligAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAHJJREFUeNpi+P///4EDBxiAGMgCCCAGFB5AADGCRBgYDh48CCRZIJS9vT2QBAggFBkmBiSAogxFBiCAoHogAKIKAlBUYTELAiAmEtABEECk20G6BOmuIl0CIMBQ/IEMkO0myiSSraaaBhZcbkUOs0HuBwDplz5uFJ3Z4gAAAABJRU5ErkJggg==';
@@ -33,6 +35,11 @@ Color.fn.toString = function() {
 	return '#' + hex;
 
 };
+
+/**
+ * Color Picker jQuery ui widget.
+ * @since 1.0.0
+ */
 
 const Picker = {
 	options:{
@@ -233,6 +240,297 @@ const Picker = {
 $.widget('wpg.colorPicker', $.a8c.iris, Picker);
 $('<style id="gradient-picker-css">' + css + '<style>').appendTo('head');
 
+/**
+ * Gradient Slider jQuery ui widget.
+ * @since 1.1.0
+ */
+
+const GradientSlider = {
+	options:{
+		colorStopIndex:0
+	},
+	_create(){
+		this._super();
+		this._addClass(this.handles.eq(this.options.colorStopIndex), null, 'wpg-gradient-picker__active');
+	},
+	_mouseStart(e){
+		const isHandle = $(e.target).is('.ui-slider-handle');
+		if (isHandle){
+			this._removeClass(this.handles, null, 'wpg-gradient-picker__active');
+			this._addClass($(e.target), null, 'wpg-gradient-picker__active');
+		}
+		return isHandle;
+	},
+	_mouseCapture(e){
+		if ($(e.target).is('.ui-slider-handle')){
+			return this._super(e);
+		}
+		return false;
+	}
+};
+
+$.widget('wpg.gradientSlider', $.ui.slider, GradientSlider);
+
+/**
+ * Angle Picker jQuery ui widget.
+ * @since 1.1.0
+ */
+
+const AnglePicker = {
+	options:{
+		radius:9,
+		value:0
+	},
+	_angle:0,
+	_create(){
+		this._mouseInit();
+		this._angle = this.options.value;
+		this.handle = this.element.find('.wpg-gradient-picker__angle-control-handle');
+		this.element.on('keydown', e => {
+			switch (e.keyCode){
+				case 37:
+				case 38:
+				e.preventDefault();
+				if (this._angle > 0){
+					this._angle -= 1;
+				} else {
+					this._angle = 360;
+				}
+				break;
+				case 39:
+				case 40:
+				e.preventDefault();
+				if (this._angle < 359){
+					this._angle += 1;
+				} else {
+					this._angle = 0;
+				}
+				break;
+				default:
+				break;
+			}
+			this._setHandle();
+			this._change();
+		}).on('mousedown', e => {
+			this.element.trigger('focus');
+		});
+		this._setHandle();
+	},
+	_change(){
+		this._trigger('change', {}, {
+			value:toFixed(this._angle)
+		});
+	},
+	_setHandle(){
+		const {
+			radius
+		} = this.options;
+		const angle = this._angle - 180;
+		const top = - radius * Math.sin(2 * Math.PI * angle / 360) + radius;
+		const left = - radius * Math.cos(2 * Math.PI * angle / 360) + radius;
+		this.handle.css({
+			top,
+			left
+		});
+		this.element.attr('title', Math.round(angle + 180));
+	},
+	_mouseStart(e){
+		return true;
+	},
+	_mouseDrag(e){
+		const offset = this.element.offset();
+		const {
+			radius
+		} = this.options;
+		const x1 = offset.left + radius;
+		const y1 = offset.top + radius - $(window).scrollTop();
+		const x2 = e.clientX;
+		const y2 = e.clientY;
+		const angle = Math.atan2(y1 - y2, x1 - x2) * 180 / Math.PI;
+		this._angle = angle + 180;
+		this._setHandle();
+		this._change();
+		return false;
+	},
+	_mouseStop(e){
+		return false;
+	},
+	_mouseCapture(e){
+		return true;
+	}
+};
+
+$.widget('wpg.anglePicker', $.ui.mouse, AnglePicker);
+
+const gradientStrip = '<div class="wpg-gradient-picker__gradient-strip"></div>';
+const angleControl = '<div class="wpg-gradient-picker__angle-control" tabindex="0"><span class="wpg-gradient-picker__angle-control-handle"></span></div>';
+const styles = '.wpg-gradient-picker__gradient-strip:before{background:url(' + bg + ')}';
+
+/**
+ * Gradient Picker jQuery ui widget.
+ * @since 1.1.0
+ */
+
+const GradientPicker = {
+	options:{
+		gradient:{
+			type:'linear',
+			angle:0,
+			colorStops:[{
+				offset:0,
+				color:'rgb(0,0,0)',
+				opacity:1
+			},{
+				offset:1,
+				color:'rgb(255,255,255)',
+				opacity:1
+			}]
+		},
+		colorPickerWidth:200,
+		maxColorStops:8
+	},
+	_gradient:{},
+	_inited:false,
+	_create(){
+
+		this._gradient = pick(this.options.gradient, ['angle', 'colorStops', 'type']);
+		this._gradient.colorStops.sort((a, b) => (a.offset - b.offset));
+		this._colorStopIndex = 0;
+
+		this.element.hide();
+		this.container = $('<div></div>', {
+			class:'wpg-gradient-picker'
+		});
+		this.container.insertAfter(this.element);
+
+		this._createColorPicker();
+		this.gradientStrip = $(gradientStrip).appendTo(this.container);
+		this.gradientStrip.on('click', e => {
+			const {
+				maxColorStops
+			} = this.options;
+			if ($(e.target).is('.ui-slider-handle') || this._gradient.colorStops.length >= maxColorStops){
+				return;
+			}
+			const elOffset = this.gradientStrip.offset();
+			const offset = (e.clientX - elOffset.left) / this.gradientStrip.width();
+			this.gradientStrip.gradientSlider('destroy');
+			this._gradient.colorStops.push({
+				offset:toFixed(offset),
+				color:'rgb(0,0,0)',
+				opacity:1
+			});
+			this._colorStopIndex = this._gradient.colorStops.length - 1;
+			this._createGradientStrip();
+			this._change();
+		});
+		this.gradientStrip.on('dblclick', '.ui-slider-handle', e => {
+			if (this._gradient.colorStops.length <= 2){
+				return;
+			}
+			this.gradientStrip.gradientSlider('destroy');
+			const handle = $(e.target);
+			const offset = ((parseFloat((handle.attr('style') || '').replace('left: ', ''))) || 0) / 100;
+			this._gradient.colorStops = this._gradient.colorStops.filter(stop => stop.offset !== offset);
+			this._colorStopIndex = 0;
+			this._createGradientStrip();
+			this._change();
+		});
+		this._createGradientStrip();
+		if (this.options.gradient?.type === 'linear'){
+			this._createAngleControl();
+		}
+		this._change();
+
+	},
+	_createColorPicker(){
+
+		const stop = this._gradient.colorStops[0];
+		const color = new Color(stop.color);
+		color.a(stop.opacity);
+
+		this.picker = $('<input />', {
+			type:'text',
+			class:'wpg-input',
+			value:color.toCSS()
+		})
+		.appendTo(this.container)
+		.colorPicker({
+			width:this.options.colorPickerWidth,
+			change:(e, ui) => {
+				const {
+					r,
+					g,
+					b
+				} = ui.color.toRgb();
+				const alpha = ui.color._alpha;
+				this._gradient.colorStops[this._colorStopIndex].color = `rgb(${r},${g},${b})`;
+				this._gradient.colorStops[this._colorStopIndex].opacity = alpha;
+				this._change();
+			}
+		});
+
+		const id = this.element.attr('id');
+		if (id){
+			this.element.attr('id', '');
+			this.picker.attr('id', id);
+		}
+
+	},
+	_createGradientStrip(){
+		this.gradientStrip.gradientSlider({
+			values:(this._gradient?.colorStops || []).map(stop => stop.offset * 100),
+			colorStopIndex:this._colorStopIndex,
+			start:(e, ui) => {
+				this._colorStopIndex = ui.handleIndex;
+				const stop = this._gradient.colorStops[this._colorStopIndex];
+				const color = new Color(stop.color);
+				color.a(stop.opacity);
+				this.picker.colorPicker('color', color.toCSS());
+			},
+			slide:(e, ui) => {
+				this._gradient.colorStops[this._colorStopIndex].offset = ui.value / 100;
+				this._change();
+			}
+		});
+	},
+	_createAngleControl(){
+		const angle = this._gradient?.angle || 0;
+		this.angleControl = $(angleControl).appendTo(this.container);
+		this.angleControl.anglePicker({
+			value:angle,
+			change:(e, ui) => {
+				this._gradient.angle = ui.value;
+				this._change();
+			}
+		});
+	},
+	_change(){
+		if (this._inited){
+			this._trigger('change', {}, {
+				gradient:$.extend({}, this._gradient)
+			});
+		}
+		const background = 'linear-gradient(90deg,' +
+		(this._gradient?.colorStops?.slice().sort((a, b) => (a.offset - b.offset)).map(stop => {
+			const color = new Color(stop.color);
+			color.a(stop.opacity);
+			return `${color.toCSS()} ${stop.offset * 100}%`;
+		}) || '') +
+		')';
+		this.gradientStrip.css('background', background);
+		this._inited = true;
+	}
+};
+
+$.widget('wpg.gradientPicker', GradientPicker);
+$('<style id="gradient-picker-css">' + styles + '<style>').appendTo('head');
+
+/**
+ * Slider jQuery ui widget.
+ * @since 1.0.0
+ */
+
 const Slider = {
 	options:{
 		min:0,
@@ -256,6 +554,11 @@ $.widget('wpg.rangeSlider', $.ui.slider, Slider);
 const arrayItem = '<div class="wpg-input-wrapper"><input type="number" class="wpg-input" min="0" /><input type="number" class="wpg-input" min="0" /><button class="wpg-stroke-dash-array-control__remove-item-button wpg-button"><i class="fas fa-times"></i></button></div>';
 const addItemButton = '<button class="wpg-stroke-dash-array-control__add-item-button wpg-button"></button>';
 const labelElements = '<div class="wpg-stroke-dash-array-control__labels wpg-input-wrapper"><small class="wpg-stroke-dash-array-control__dash-label"></small><small class="wpg-stroke-dash-array-control__gap-label"></small></div>';
+
+/**
+ * Stroke Dash Array Control jQuery ui widget.
+ * @since 1.0.0
+ */
 
 const StrokeDashArray = {
 	options:{
@@ -318,6 +621,11 @@ const shadowOffsetX = '<div class="wpg-input-wrapper"><span class="wpg-label">OF
 const shadowOffsetY = '<div class="wpg-input-wrapper"><span class="wpg-label">OFFSETY</span><div class="wpg-shadow-control-offset-x wpg-range-slider"></div></div>';
 const shadowBlur = '<div class="wpg-input-wrapper"><span class="wpg-label"></span><div class="wpg-shadow-control-offset-x wpg-range-slider"></div></div>';
 const shadowColor = '<div class="wpg-input-wrapper"><label class="wpg-label"></label><input type="text" class="wpg-input"></div>';
+
+/**
+ * Shadow Control jQuery ui widget.
+ * @since 1.0.0
+ */
 
 const ShadowControl = {
 	options:{

@@ -6,13 +6,16 @@ import {
 import anime from 'animejs';
 import {
 	IText,
+	Group,
 	loadSVGFromString
 } from 'fabric';
 import {
 	extend,
 	each,
 	omit,
-	isObject
+	isObject,
+	isEmpty,
+	filter
 } from 'underscore';
 import {
 	project_id,
@@ -181,21 +184,30 @@ export default Base.extend(/** @lends Editor.prototype */{
 		}
 		if (content && content.raw){
 			try {
-				loadSVGFromString(content.raw, (shapes, scene, elements) => {
+				loadSVGFromString(content.raw, (shapes, scene, elements, allElements) => {
+					this.__objects = {};
 					each(shapes, (shape, i) => {
-						const className = elements[i] && $(elements[i]).parent().attr('class');
-						const transform = elements[i] && $(elements[i]).parent().data('transform');
+						const element = elements[i];
+						const className = element && $(element).parent().attr('class');
+						const transform = element && $(element).parent().data('transform');
+						const isInGroup = element && $(element).closest('g[data-group="true"]').length;
 						if (className){
 							shape.id = className;
 						}
 						if (transform && isObject(transform)){
 							extend(shape, transform);
 						}
+						if (shape.clipPath){
+							const cpId = ($(element).parent().attr('clip-path') || '').replace('url(', '').replace(')', '');
+							const cpElement = (filter(allElements, el => $(el).is(cpId)) || [])[0];
+							const cpTransform = $(cpElement).children().first().data('transform') || {};
+							extend(shape.clipPath, cpTransform);
+						}
 						if (shape.type === 'text'){
 							// Fabric.js parses text svg element to Text object.
 							// We replace it to IText to be editable.
 							let text = shape.text;
-							const textElem = $(elements[i]);
+							const textElem = $(element);
 							if (className && className.indexOf('wpgraphicator') === 0 && textElem.find('tspan').length > 1){
 								text = textElem.find('tspan').map((i, tspan) => $(tspan).text()).toArray().join('\n');
 							}
@@ -208,19 +220,42 @@ export default Base.extend(/** @lends Editor.prototype */{
 							options.left = matrix[4] !== undefined ? parseFloat(matrix[4]) : options.left;
 							options.top = matrix[5] !== undefined ? parseFloat(matrix[5]) : options.top;
 							options.textAlign = (textAnchor === 'middle') ? 'center' : (textAnchor === 'end') ? 'right' : 'left';
-							this.scene.add(new IText(text, options));
-						} else {
-							const wpId = $(elements[i]).parent().data('wpid');
-							const wpSize = $(elements[i]).parent().data('wpsize');
+							shape = new IText(text, options);
+						} else if (shape.type === 'image'){
+							const wpId = $(element).parent().data('wpid');
+							const wpSize = $(element).parent().data('wpsize');
 							if (wpId){ // If shape is an image, we save attachment id to data-wpid attribute.
 								shape.wpId = wpId;
 							}
 							if (wpSize){ // If shape is an image, we save image size to data-wpsize attribute.
 								shape.wpSize = wpSize;
 							}
-							this.scene.add(shape);
+						}
+						if (isInGroup){
+							const groupEl = $(element).closest('g[data-group="true"]');
+							const groupClass = groupEl.attr('class');
+							if (!this.__objects[groupClass]){
+								this.__objects[groupClass] = {
+									objects:[],
+									transform:groupEl.data('transform') || {}
+								};
+							}
+							this.__objects[groupClass].objects.push(shape);
+						} else {
+							this.__objects[className] = shape;
 						}
 					});
+					if (!isEmpty(this.__objects)){
+						each(this.__objects, (object, id) => {
+							if (object.objects && object.objects.length){
+								const group = new Group(object.objects, object.transform);
+								group.id = id;
+								this.scene.add(group);
+							} else {
+								this.scene.add(object);
+							}
+						});
+					}
 				});
 			} catch (error){
 				console.error(error);

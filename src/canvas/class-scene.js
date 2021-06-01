@@ -10,7 +10,9 @@ import {
 	separateColorOpacity
 } from './../utils/utils.js';
 import {
-	TARGET_FIND_TOLERANCE
+	TARGET_FIND_TOLERANCE,
+	SELECTION_COLOR,
+	SELECTION_BORDER_COLOR
 } from './../utils/constants.js';
 
 /**
@@ -29,6 +31,22 @@ export default util.createClass(Canvas, /** @lends Scene.prototype */{
 	 */
 
 	selection:false,
+
+	/**
+	 *
+	 * @since 1.1.0
+	 * @var {string}
+	 */
+
+	selectionKey:'ctrlKey',
+
+	/**
+	 *
+	 * @since 1.1.0
+	 * @var {null}
+	 */
+
+	altActionKey:null,
 
 	/**
 	 * Save state of objects for undo/redo.
@@ -61,6 +79,22 @@ export default util.createClass(Canvas, /** @lends Scene.prototype */{
 	 */
 
 	targetFindTolerance:TARGET_FIND_TOLERANCE,
+
+	/**
+	 *
+	 * @since 1.1.0
+	 * @var {string}
+	 */
+
+	selectionColor:SELECTION_COLOR,
+
+	/**
+	 *
+	 * @since 1.1.0
+	 * @var {string}
+	 */
+
+	selectionBorderColor:SELECTION_BORDER_COLOR,
 
 	/**
 	 * Constructor.

@@ -4,12 +4,16 @@ import {
 	debounce,
 	contains,
 	isArray,
+	isObject,
 	pick
 } from 'underscore';
 import {
 	i18n,
 	media
 } from 'wordpress';
+import {
+	Gradient
+} from 'fabric';
 
 import Subview from './subview.js';
 import Project from './frame-project.js';
@@ -19,10 +23,13 @@ import {
 	toFixed,
 	serializePath,
 	serializePoints,
-	pickDifference
+	pickDifference,
+	serializeGradient
 } from './../utils/utils.js';
 import {
-	COLOR_PICKER_WIDTH
+	COLOR_PICKER_WIDTH,
+	DEFAULT_FILL_COLOR,
+	DEFAULT_STROKE_COLOR
 } from './../utils/constants.js';
 
 const {
@@ -59,6 +66,8 @@ export default Subview.extend(/** @lends SettingsShape.prototype */{
 		'change .wpg-settings-shape__transform-input':'_setProperty',
 		'change .wpg-settings-shape__dimensions-input':'_setProperty',
 		'change .wpg-settings-shape__stroke-dash-offset-input':'_setProperty',
+		'change .wpg-settings-shape__fill-type-select':'_setFillType',
+		'change .wpg-settings-shape__stroke-type-select':'_setStrokeType',
 		'change .wpg-settings-shape__stroke-others-select':'_setNonAnimatableStringValue',
 		'change .wpg-settings-shape__fill-rule-select':'_setNonAnimatableStringValue',
 		'change .wpg-settings-shape__path-input':'_setPath',
@@ -116,10 +125,18 @@ export default Subview.extend(/** @lends SettingsShape.prototype */{
 		if (!shapeModel){
 			return;
 		}
-		this.$('.wpg-settings-shape__stroke-color-input').colorPicker({
-			width:COLOR_PICKER_WIDTH,
-			change:throttle((e, {color}) => this._setPropertyWithPlugin('stroke', color.toString()), 200)
-		});
+		if (isObject(shape.stroke)){
+			this.$('.wpg-settings-shape__stroke-gradient-input').gradientPicker({
+				width:COLOR_PICKER_WIDTH,
+				gradient:shape.stroke?.toObject(['angle']),
+				change:throttle((e, {gradient}) => this._setPropertyWithPlugin('stroke', serializeGradient(gradient)), 200)
+			});
+		} else {
+			this.$('.wpg-settings-shape__stroke-color-input').colorPicker({
+				width:COLOR_PICKER_WIDTH,
+				change:throttle((e, {color}) => this._setPropertyWithPlugin('stroke', color.toString()), 200)
+			});
+		}
 		this.$('.wpg-settings-shape__stroke-width-input').rangeSlider({
 			value:shape.strokeWidth,
 			change:throttle((e, {value}) => this._setPropertyWithPlugin('strokeWidth', value), 200)
@@ -133,10 +150,18 @@ export default Subview.extend(/** @lends SettingsShape.prototype */{
 			value:shape.strokeDashArray,
 			change:throttle((e, {value}) => this._setPropertyWithPlugin('strokeDashArray', value), 200)
 		});
-		this.$('.wpg-settings-shape__fill-color-input').colorPicker({
-			width:COLOR_PICKER_WIDTH,
-			change:throttle((e, {color}) => this._setPropertyWithPlugin('fill', color.toString()), 200)
-		});
+		if (isObject(shape.fill)){
+			this.$('.wpg-settings-shape__fill-gradient-input').gradientPicker({
+				width:COLOR_PICKER_WIDTH,
+				gradient:shape.fill?.toObject(['angle']),
+				change:throttle((e, {gradient}) => this._setPropertyWithPlugin('fill', serializeGradient(gradient)), 200)
+			});
+		} else {
+			this.$('.wpg-settings-shape__fill-color-input').colorPicker({
+				width:COLOR_PICKER_WIDTH,
+				change:throttle((e, {color}) => this._setPropertyWithPlugin('fill', color.toString()), 200)
+			});
+		}
 		this.$('.wpg-settings-shape__opacity-input').rangeSlider({
 			value:shape.opacity,
 			min:0,
@@ -381,6 +406,102 @@ export default Subview.extend(/** @lends SettingsShape.prototype */{
 
 	/**
 	 *
+	 * @since 1.1.0
+	 * @access private
+	 * @param {object} e Event.
+	 */
+
+	_setFillType(e){
+		const fillType = $(e.target).val();
+		this._setColorType('fill', fillType);
+	},
+
+	/**
+	 *
+	 * @since 1.1.0
+	 * @access private
+	 * @param {object} e Event.
+	 */
+
+	_setStrokeType(e){
+		const strokeType = $(e.target).val();
+		this._setColorType('stroke', strokeType);
+	},
+
+	/**
+	 *
+	 * @since 1.1.0
+	 * @access private
+	 * @param {string} colorName Stroke, or fill.
+	 * @param {string} colorType 'color', 'linear', or 'radial'
+	 */
+
+	_setColorType(colorName = 'fill', colorType = 'color'){
+
+		
+		const shape = this._getSelectedShape();
+		const shapeModel = this._getSelectedShapeModel();
+		const colorProp = shapeModel?._properties?.get(colorName);
+		const hasColor = (colorProp && colorProp._transitions.length);
+		const setColor = () => {
+			switch (colorType){
+				case 'color':
+				shape[colorName] = colorName === 'fill' ? DEFAULT_FILL_COLOR : DEFAULT_STROKE_COLOR;
+				break;
+				case 'linear':
+				shape[colorName] = new Gradient({
+					type:'linear',
+					colorStops:[{
+						color:DEFAULT_STROKE_COLOR,
+						offset:0
+					},{
+						color:DEFAULT_FILL_COLOR,
+						offset:1
+					}]
+				});
+				break;
+				case 'radial':
+				shape[colorName] = new Gradient({
+					type:'radial',
+					colorStops:[{
+						color:DEFAULT_STROKE_COLOR,
+						offset:0
+					},{
+						color:DEFAULT_FILL_COLOR,
+						offset:1
+					}]
+				});
+				break;
+				default:
+				break;
+			}
+			if (hasColor){
+				shapeModel._properties.remove(colorProp);
+				if (shapeModel._properties.length === 0 && shape){
+					this.anime.remove(shape._animationCache);
+					this.setState('totalDuration', this.anime.duration / 1000);
+				}
+			}
+			this.scene.requestRenderAll();
+			this.render();
+		};
+
+		if (!hasColor){
+			setColor();
+			return;
+		}
+
+		this.sendNotice(
+			__('Are you sure? If you change the fill type, the fill animation will be deleted.', 'wpgraphicator'),
+			'warning',
+			setColor,
+			this.render.bind(this)
+		);
+
+	},
+
+	/**
+	 *
 	 * @since 1.0.0
 	 * @access private
 	 * @param {object} e Event.
@@ -414,6 +535,14 @@ export default Subview.extend(/** @lends SettingsShape.prototype */{
 		const property = target.data('property') || target.parent().data('property');
 		let value;
 		switch (property){
+			case 'fill':
+			case 'stroke':
+			if (shape[property] && shape[property].toLive){ // In case of gradient.
+				value = serializeGradient(shape[property]);
+			} else { // In case of color.
+				value = shape[property];
+			}
+			break;
 			case 'path':
 			value = serializePath(shape.path);
 			break;

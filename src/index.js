@@ -11,6 +11,7 @@ import './canvas/extend-polyline.js';
 import './canvas/extend-itext.js';
 import './canvas/extend-image.js';
 import './canvas/extend-group.js';
+import './canvas/extend-active-selection.js';
 import './utils/jquery-plugins.js';
 import wpgEditor from 'wpgeditor';
 import Editor from './view/editor.js';

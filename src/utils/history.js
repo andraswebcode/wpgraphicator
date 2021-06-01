@@ -3,7 +3,8 @@ import {
 } from 'backbone';
 import {
 	debounce,
-	clone
+	clone,
+	each
 } from 'underscore';
 import fabric from 'fabric';
 
@@ -106,6 +107,16 @@ export default class {
 				this.scene.remove(shapeObject);
 			}
 			break;
+			case 'bulk:add':
+			if (redo){
+				// Do something...
+			} else {
+				each(modelState, ({id}) => {
+					this.shapes.remove(this.shapes.get(id));
+					this.scene.remove(this.scene.getObjectById(id));
+				});
+			}
+			break;
 			case 'change':
 			if (shapeModel){
 				// Needs remove properties to rerender views.
@@ -129,12 +140,21 @@ export default class {
 				this.scene.requestRenderAll();
 			}
 			break;
+			case 'bulk:change':
+			break;
 			case 'remove':
 			if (redo){
 				this.shapes.remove(shapeModel);
 				this.scene.remove(shapeObject);
 			} else {
 				this.__remakeRemovedShape(modelState, shapeState);
+			}
+			break;
+			case 'bulk:remove':
+			if (redo){
+				// Do something...
+			} else {
+				each(modelState, (ms, i) => this.__remakeRemovedShape(ms, shapeState[i]));
 			}
 			break;
 			default:
@@ -144,44 +164,42 @@ export default class {
 	}
 
 	/**
-	 *
+	 * Note: shapeModel, and shape have to be the original instance of it,
+	 * (or array of instances of these) not the cloned one.
 	 * @since 1.0.0
 	 * @access private
-	 * @param {object} shapeModel
+	 * @param {object|array} shapeModel
 	 * @param {string} action Add, change, or remove.
+	 * @param {object|array} shape
 	 */
 
 	_addToStack(shapeModel, action, shape){
+		const bulkAction = (action?.indexOf('bulk:') === 0);
 		if (!this.__disableAddToStack){
 			if (this.index < this.stack.length - 1){
 				this.stack.reset(this.stack.slice(0, this.index + 1));
 			}
-			shape = shape || this.scene.getObjectById(shapeModel.get('id'));
-			this.stack.add({
-				model:clone(shapeModel._prevState),
-				shape:clone(shape._stateProperties),
-				action
-			});
+			if (bulkAction){ // In case of bulk action.
+				const models = shapeModel.map(model => clone(model._prevState));
+				const shapes = shape.map(obj => clone(obj._stateProperties));
+				this.stack.add({
+					model:models,
+					shape:shapes,
+					action
+				});
+			} else { // In case of a single action.
+				shape = shape || this.scene.getObjectById(shapeModel.get('id'));
+				this.stack.add({
+					model:clone(shapeModel._prevState),
+					shape:clone(shape._stateProperties),
+					action
+				});
+			}
 			this.index++;
 		}
-		shapeModel._prevState = shapeModel.toJSON();
-	}
-
-	__addToStack(shapeModel, action, shape){
-		if (this.__disableAddToStack){
-			return;
+		if (!bulkAction){
+			shapeModel._prevState = shapeModel.toJSON();
 		}
-		if (this.index < this.stack.length - 1){
-			this.stack.reset(this.stack.slice(0, this.index + 1));
-		}
-		shape = shape || this.scene.getObjectById(shapeModel.get('id'));
-		this.stack.add({
-			model:clone(shapeModel._prevState),
-			shape:clone(shape._stateProperties),
-			action
-		});
-		shapeModel._prevState = shapeModel.toJSON();
-		this.index++;
 	}
 
 	/**

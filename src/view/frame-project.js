@@ -127,7 +127,6 @@ export default Frame.extend(/** @lends Project.prototype */{
 			'object:modified':this._onSceneObjectModified.bind(this),
 			'object:moving':this._onSceneObjectMoving.bind(this),
 			'object:morphing':this._onSceneObjectMorphing.bind(this),
-			//'object:skewing':this._onSceneObjectSkewing.bind(this),
 			'shape:created':this._onSceneShapeCreated.bind(this),
 			'object:added':this._onSceneObjectAdded.bind(this),
 			'object:removed':this._onSceneObjectRemoved.bind(this),
@@ -285,8 +284,13 @@ export default Frame.extend(/** @lends Project.prototype */{
 	 * @param {object}
 	 */
 
-	_onSceneSelect({selected, deselected}){
-		this.setState('selectedShapeIds', selected ? selected.map(shape => shape.id) : ['']);
+	_onSceneSelect({selected, deselected, target}){
+		const ids = (
+			target?.type === 'activeSelection' ? target._objects :
+			(selected && selected.length) ? selected :
+			(deselected && deselected[0] && target?.type && target?.type !== 'activeSelection') ? [target] : []
+		).map(shape => shape.id);
+		this.setState('selectedShapeIds', ids);
 		const activeTool = this.getState('activeTool');
 		if (
 			!this.scene.isDrawingMode &&
@@ -773,6 +777,33 @@ export default Frame.extend(/** @lends Project.prototype */{
 	 */
 
 	_onSceneObjectModified({target, action}){
+		if (target.type === 'activeSelection'){
+			const models = target._objects.map(({id}) => this.shapes.get(id));
+			each(target._objects, object => {
+				const matrix = object.calcTransformMatrix();
+				const {
+					angle,
+					scaleX,
+					scaleY,
+					skewX,
+					skewY,
+					translateX,
+					translateY
+				} = qrDecompose(matrix);
+				const shapeModel = this.shapes.get(object.id);
+				this.__updateProperties({
+					angle,
+					scaleX,
+					scaleY,
+					skewX,
+					skewY,
+					left:translateX,
+					top:translateY
+				}, shapeModel, action);
+			});
+			this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:change', target._objects);
+			return;
+		}
 		const shapeModel = this.shapes.get(target.id);
 		this.__updateProperties(target, shapeModel, action);
 		shapeModel.trigger('wpg:pushtohistorystack', shapeModel, 'change', target);
@@ -855,24 +886,6 @@ export default Frame.extend(/** @lends Project.prototype */{
 	 * @param {object}
 	 */
 
-	_onSceneObjectSkewing({target}){
-		const {
-			top,
-			left
-		} = target._stateProperties;
-		target.set({
-			top,
-			left
-		});
-	},
-
-	/**
-	 *
-	 * @since 1.0.0
-	 * @access private
-	 * @param {object}
-	 */
-
 	_onSceneShapeCreated({shape}){
 		if (!shape || shape.type !== 'ellipse'){
 			return;
@@ -940,7 +953,14 @@ export default Frame.extend(/** @lends Project.prototype */{
 						removeShape,
 						'warning',
 						() => {
-							this.scene.remove(shape);
+							if (shape.type === 'activeSelection'){
+								const models = shape._objects.map(({id}) => this.shapes.get(id));
+								each(shape._objects, object => this.scene.remove(object));
+								this.scene.discardActiveObject();
+								this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:remove', shape._objects);
+							} else {
+								this.scene.remove(shape);
+							}
 							this.setState('totalDuration', this.anime.duration / 1000);
 						},
 						true

@@ -2,6 +2,7 @@ import {
 	Object as FabricObject,
 	Point,
 	Shadow,
+	Gradient,
 	util
 } from 'fabric';
 import {
@@ -9,7 +10,8 @@ import {
 	random,
 	reduce,
 	each,
-	isUndefined
+	isUndefined,
+	isObject
 } from 'underscore';
 import {
 	DEFAULT_STROKE_WIDTH,
@@ -118,6 +120,11 @@ util.object.extend(FabricObject.prototype, {
 		} = options;
 		const index = objectMarkup.indexOf('COMMON_PARTS');
 		const vectorEffect = this.strokeUniform ? 'vector-effect="non-scaling-stroke" ' : '';
+		const clipPath = this.clipPath;
+		if (clipPath){
+			const cpId = times(20, () => random(36).toString(35)).join('');
+			clipPath.clipPathId = `WPG_CLIPPATH_ID-${cpId}`;
+		}
 		const markup = [
 			'<g ',
 			this.getSvgTransform(false),
@@ -135,6 +142,13 @@ util.object.extend(FabricObject.prototype, {
 		}
 		if (this.stroke && this.stroke.toLive){
 			markup.push(this.stroke.toSVG(this));
+		}
+		if (clipPath){
+			markup.push(
+				`<clipPath id="${clipPath.clipPathId}" >\n`,
+				clipPath.toClipPathSVG(reviver),
+				'</clipPath>\n'
+			);
 		}
 		markup.push(
 			objectMarkup.join(''),
@@ -167,7 +181,8 @@ util.object.extend(FabricObject.prototype, {
 		};
 		return [
 			this.id ? `class="${this.id}" ` : '',
-			`data-transform='${JSON.stringify(transform)}'`
+			`data-transform='${JSON.stringify(transform)}' `,
+			this.clipPath ? `clip-path="url(#${this.clipPath.clipPathId})"` : ''
 		].join('');
 	},
 	getSvgStyleAttrs(){
@@ -207,6 +222,8 @@ util.object.extend(FabricObject.prototype, {
 			value = new Shadow(value);
 		} else if (key === 'dirty' && this.group) {
 			this.group.set('dirty', value);
+		} else if ((key === 'fill' || key === 'stroke') && isObject(value) && !(value instanceof Gradient)){
+			value = new Gradient(value);
 		}
 		this[key] = value;
 		if (isChanged){

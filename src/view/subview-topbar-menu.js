@@ -1,13 +1,20 @@
 import $ from 'jquery';
 import {
+	loadSVGFromString
+} from 'fabric';
+import {
 	reduce,
 	clone,
-	omit
+	omit,
+	each
 } from 'underscore';
 import {
-	i18n
+	i18n,
+	api
 } from 'wordpress';
 import {
+	url,
+	version,
 	playing_modes,
 	preserve_aspect_ratio_values
 } from 'wpgeditor';
@@ -18,12 +25,25 @@ import TopbarSave from './subview-topbar-save.js';
 import {
 	notificationMessages,
 	keyboardShortcuts,
-	easings
+	easings,
+	countShapesInSVGString
 } from './../utils/utils.js';
+import {
+	MAX_SVG_FILE_SIZE,
+	MAX_SVG_NUM_OF_SHAPES
+} from './../utils/constants.js';
 
 const {
-	__
+	__,
+	_n,
+	sprintf
 } = i18n;
+const {
+	Wpgraphicator
+} = api.models;
+const {
+	new_project
+} = url;
 const {
 	removeShape,
 	removeAllShapes,
@@ -69,42 +89,72 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 
 	templateParams(){
 		const snapToGrid = this.getState('snapToGrid');
+		const hasntSelectedKeyframe = () => {
+			const views = this.getState('activeTrackPoints') || [];
+			return !(views.length && views[0]);
+		};
 		return {
 			menuItems:[{
+				name:'file',
+				title:__('File', 'wpgraphicator'),
+				items:[{
+					name:'new-project',
+					title:__('New', 'wpgraphicator')
+				},{
+					name:'save-as',
+					title:__('Save as', 'wpgraphicator')
+				},{
+					name:'export-json',
+					title:__('Export as JSON', 'wpgraphicator')
+				},{
+					name:'divider'
+				},{
+					name:'import-svg',
+					title:__('Import SVG', 'wpgraphicator')
+				}]
+			},{
 				name:'edit',
 				title:__('Edit', 'wpgraphicator'),
 				items:[{
 					name:'undo',
-					title:__('Undo', 'wpgraphicator')
+					title:__('Undo', 'wpgraphicator'),
+					disabled:() => this.history.index < 0
 				},{
 					name:'divider'
 				},{
 					name:'delete-shape',
-					title:__('Delete Selected Shape', 'wpgraphicator')
+					title:__('Delete Selected Shape', 'wpgraphicator'),
+					disabled:() => !this.scene.getActiveObject()
 				},{
 					name:'copy-shape',
-					title:__('Copy Selected Shape', 'wpgraphicator')
+					title:__('Copy Selected Shape', 'wpgraphicator'),
+					disabled:() => !this.scene.getActiveObject()
 				},{
 					name:'paste-shape',
-					title:__('Paste Shape', 'wpgraphicator')
+					title:__('Paste Shape', 'wpgraphicator'),
+					disabled:() => !(this.clipboard._object && this.clipboard._type === 'shape')
 				},{
 					name:'divider'
 				},{
 					name:'clear-canvas',
-					title:__('Clear Canvas', 'wpgraphicator')
+					title:__('Clear Canvas', 'wpgraphicator'),
+					disabled:() => !this.scene._objects.length
 				}]
 			},{
 				name:'animation',
 				title:__('Animation', 'wpgraphicator'),
 				items:[{
 					name:'delete-transition',
-					title:__('Delete Selected Keyframe', 'wpgraphicator')
+					title:__('Delete Selected Keyframe', 'wpgraphicator'),
+					disabled:hasntSelectedKeyframe
 				},{
 					name:'copy-transition',
-					title:__('Copy Selected Keyframe', 'wpgraphicator')
+					title:__('Copy Selected Keyframe', 'wpgraphicator'),
+					disabled:hasntSelectedKeyframe
 				},{
 					name:'paste-transition',
-					title:__('Paste Keyframe', 'wpgraphicator')
+					title:__('Paste Keyframe', 'wpgraphicator'),
+					disabled:() => !(this.clipboard._object && this.clipboard._type === 'transition')
 				},{
 					name:'divider'
 				},{
@@ -114,7 +164,12 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 					name:'divider'
 				},{
 					name:'clear-animation',
-					title:__('Clear Animation', 'wpgraphicator')
+					title:__('Clear Animation', 'wpgraphicator'),
+					disabled:() => {
+						const shape = this.scene.getActiveObject();
+						const shapeModel = this.shapes.get(shape?.id);
+						return !(shapeModel?._properties?.at(0)?._transitions.length);
+					}
 				}]
 			},{
 				name:'view',
@@ -161,6 +216,10 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 		'click .wpg-topbar-menu__item-button':'_openDropdown',
 		'click .wpg-popup__backdrop':'_closeDopdown',
 		'click .wpg-topbar-menu__dropdown-item-button':'_doAction',
+		'click .wpg-topbar-menu__modal-save-as-button':'_saveProjectAs',
+		'click .wpg-topbar-menu__modal-svg-import-file-button':'_importSVGFile',
+		'click .wpg-topbar-menu__modal-svg-import-ok-button':'_parseSVGFile',
+		'click .wpg-topbar-menu__modal-svg-import-cancel-button':'_closeDopdown',
 		'change .wpg-topbar-menu__modal-grid-size-input':'_setGridSize',
 		'change .wpg-topbar-menu__modal-default-easing-select':'_setDefaultEasing',
 		'click .wpg-shortcode-generator__copy-button':'_copyShortcodeToClipboard',
@@ -231,6 +290,43 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 		const shapeModel = this.shapes.get(shape?.id);
 		const activeTrackPoints = this.getState('activeTrackPoints');
 		switch (action){
+			// File menu.
+			case 'new-project':
+			this.$window[0].location = new_project;
+			break;
+			case 'save-as':
+			this.setState('topbarMenuShowModal', 'save-as');
+			break;
+			case 'export-json':
+			if (!this.__exportJSONElement){
+				this.__exportJSONElement = $('<a></a>').appendTo('body');
+			}
+			const title = this.getState('projectName');
+			const svg = this._getProjectSvg();
+			const json = {
+				__file:'wpgraphicator',
+				title,
+				svg:svg.replace(/\n|\t/g, ''),
+				project:{
+					width:this.getState('projectWidth'),
+					height:this.getState('projectHeight'),
+					seconds:this.getState('seconds'),
+					background:this.getState('projectBackground'),
+					version
+				},
+				transitions:this.shapes.toJSON()
+			};
+			const link = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(json));
+			const fileName = title ? title.toLowerCase().replace(/\s/g, '-') + '.json' : 'wpgraphicator.json';
+			this.__exportJSONElement.attr({
+				href:link,
+				download:fileName
+			});
+			this.__exportJSONElement[0].click();
+			break;
+			case 'import-svg':
+			this.setState('topbarMenuShowModal', 'import-svg');
+			break;
 			// Edit menu.
 			case 'undo':
 			this.history.undo();
@@ -241,7 +337,14 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 					removeShape,
 					'warning',
 					() => {
-						this.scene.remove(shape);
+						if (shape.type === 'activeSelection'){
+							const models = shape._objects.map(({id}) => this.shapes.get(id));
+							each(shape._objects, object => this.scene.remove(object));
+							this.scene.discardActiveObject();
+							this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:remove', shape._objects);
+						} else {
+							this.scene.remove(shape);
+						}
 						this.setState('totalDuration', this.anime.duration / 1000);
 					},
 					true
@@ -276,7 +379,16 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 				this.sendNotice(
 					removeAllShapes,
 					'warning',
-					() => this.scene.forEachObject(shape => this.scene.remove(shape), this),
+					() => {
+						const shapes = [];
+						const models = [];
+						this.shapes.each(model => models.push(model));
+						this.scene.forEachObject(shape => {
+							shapes.push(shape);
+							this.scene.remove(shape);
+						}, this);
+						this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:remove', shapes);
+					},
 					true
 				);
 			}
@@ -366,6 +478,169 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 	 * @param {object} e Event.
 	 */
 
+	_saveProjectAs(e){
+
+		e.preventDefault();
+		const newProject = new Wpgraphicator();
+		const svg = this._getProjectSvg();
+		const title = this.$('.wpg-topbar-menu__modal-save-as-input').val();
+		this.shapes.each((shape, i) => shape.set('zIndex', i));
+
+		newProject.save({
+			title,
+			content:svg,
+			status:'publish',
+			meta:{
+				wpgraphicator_project:{
+					width:this.getState('projectWidth'),
+					height:this.getState('projectHeight'),
+					seconds:this.getState('seconds'),
+					background:this.getState('projectBackground'),
+					version
+				},
+				wpgraphicator_transitions:this.shapes.toJSON()
+			}
+		},{
+			success:() => {
+				const id = newProject.id || '';
+				this.$window[0].location = new_project + '&id=' + id;
+			},
+			error:() => {}
+		});
+
+	},
+
+	/**
+	 *
+	 * @since 1.0.0
+	 * @access private
+	 * @param {object} e Event.
+	 */
+
+	_importSVGFile(e){
+		e.preventDefault();
+		this.__svgFileInput = $('<input>', {
+			type:'file',
+			accept:'image/svg+xml'
+		});
+		const reader = new FileReader();
+		reader.onload = e => {
+			const numOfShapes = countShapesInSVGString(reader.result);
+			this.__importedSVGString = reader.result;
+			this.$('.wpg-topbar-menu__modal-svg-import-num-of-layers').html(
+				'&nbsp;&mdash;&nbsp;' +
+				sprintf(
+					_n('%s layer', '%s layers', numOfShapes, 'wpgraphicator'),
+					numOfShapes
+				)
+			);
+			this.$('.wpg-topbar-menu__modal-svg-import-preview').find('svg').remove();
+			this.$('.wpg-topbar-menu__modal-svg-import-preview').append(reader.result);
+			this.$('.wpg-topbar-menu__modal-svg-import-button-wrapper').show();
+			if (numOfShapes > MAX_SVG_NUM_OF_SHAPES){
+				this.$('.wpg-topbar-menu__modal-svg-import-message').show().text(
+					sprintf(
+						__('Note: This SVG contains %s layers that are more than the recommended maximum: %s. The process might take a long time.', 'wpgraphicator'),
+						numOfShapes,
+						MAX_SVG_NUM_OF_SHAPES
+					)
+				);
+			}
+		};
+		reader.onerror = () => {};
+		this.__svgFileInput.on('change', e => {
+			const input = this.__svgFileInput[0];
+			const file = (input.files && input.files[0]);
+			if (file && file.type === 'image/svg+xml'){
+				if (file.size < MAX_SVG_FILE_SIZE){
+					this.$('.wpg-topbar-menu__modal-svg-import-message').hide().text('');
+					this.$('.wpg-topbar-menu__modal-svg-import-file-name').text(input.files[0].name);
+					reader.readAsText(input.files[0]);
+				} else {
+					this.$('.wpg-topbar-menu__modal-svg-import-message').show().text(
+						sprintf(
+							__('SVG file is too large. The maximum upload file size is %sMB.', 'wpgraphicator'),
+							MAX_SVG_FILE_SIZE / 1000000
+						)
+					);
+					this.$('.wpg-topbar-menu__modal-svg-import-preview').find('svg').remove();
+					this.$('.wpg-topbar-menu__modal-svg-import-button-wrapper').hide();
+				}
+			} else {
+				this.$('.wpg-topbar-menu__modal-svg-import-message').show().text(
+					__('Please choose an SVG file.', 'wpgraphicator')
+				);
+				this.$('.wpg-topbar-menu__modal-svg-import-preview').find('svg').remove();
+				this.$('.wpg-topbar-menu__modal-svg-import-button-wrapper').hide();
+			}
+		});
+		this.__svgFileInput[0].click();
+	},
+
+	/**
+	 *
+	 * @since 1.0.0
+	 * @access private
+	 * @param {object} e Event.
+	 */
+
+	_parseSVGFile(e){
+
+		e.preventDefault();
+
+		if (!this.__importedSVGString){
+			this.sendNotice(
+				__('SVG string is missing.', 'wpgraphicator'),
+				'error'
+			);
+			this._closeDopdown();
+			return;
+		}
+
+		this.$('.wpg-topbar-menu__modal-svg-import-loader').css('display', 'flex');
+
+		const resetCanvas = this.$('.wpg-topbar-menu__modal-svg-import-reset-canvas')[0].checked;
+		const strokeWidth = fabric.Object.prototype.strokeWidth;
+		const fill = fabric.Object.prototype.fill;
+
+		// Reset SVG defaults.
+		fabric.Object.prototype.strokeWidth = 0;
+		fabric.Object.prototype.fill = '#000000';
+		setTimeout(() => {
+			try {
+				loadSVGFromString(this.__importedSVGString, (shapes, options) => {
+					if (resetCanvas){
+						this.scene.forEachObject(shape => this.scene.remove(shape), this);
+						this.setState({
+							projectWidth:options.width,
+							projectHeight:options.height
+						});
+					}
+					each(shapes, shape => this.scene.add(shape));
+					const models = shapes.map(({id}) => this.shapes.get(id));
+					this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:add', shapes);
+					this._closeDopdown();
+				});
+			} catch (e){
+				console.error(e);
+				fabric.Object.prototype.strokeWidth = strokeWidth;
+				fabric.Object.prototype.fill = fill;
+				this._closeDopdown();
+				this.sendNotice(
+					__('Something went wrong while parsing svg.', 'wpgraphicator'),
+					'error'
+				);
+			}
+		}, 40);
+	},
+
+	/**
+	 *
+	 * @since 1.0.0
+	 * @access private
+	 * @param {object} e Event.
+	 */
+
 	_setGridSize(e){
 		const value = $(e.target).val();
 		this.setState('gridSize', parseInt(value) || 0);
@@ -441,7 +716,16 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 				this.sendNotice(
 					removeAllShapes,
 					'warning',
-					() => this.scene.forEachObject(shape => this.scene.remove(shape), this),
+					() => {
+						const shapes = [];
+						const models = [];
+						this.shapes.each(model => models.push(model));
+						this.scene.forEachObject(shape => {
+							shapes.push(shape);
+							this.scene.remove(shape);
+						}, this);
+						this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:remove', shapes);
+					},
 					true
 				);
 			}

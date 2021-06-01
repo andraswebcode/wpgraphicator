@@ -25,6 +25,10 @@ $label-margin:					$label-margin-y $label-margin-x;
 $range-slider-height:			1em;
 $range-slider-handle-width:		2em;
 $range-slider-handle-height:	1.2em;
+$gradient-strip-width:			77%;
+$gradient-strip-height:			30px;
+$gradient-strip-color-height:	18px;
+$gradient-strip-handle-width:	8px;
 $scrollbar-width:				10px;
 $scrollbar-thumb-border-radius:	5px;
 $workarea-height-sm:			300px;
@@ -77,6 +81,8 @@ $track-shadow:					inset 0px 0px 5px 2px rgba(0, 0, 0, 0.8);
 
 $range-slider-border-radius:	5px;
 $process-strip-border-radius:	2px;
+$color-picker-border-radius:	3px;
+$color-picker-border:			solid 2px $editor-color;
 
 // Responsive
 

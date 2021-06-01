@@ -1,12 +1,22 @@
 import {
 	Gradient,
-	iMatrix,
+	Point,
 	util
 } from 'fabric';
 import {
 	times,
-	random
+	random,
+	isUndefined,
+	isEmpty
 } from 'underscore';
+import {
+	clamp
+} from './../utils/utils.js';
+
+const {
+	degreesToRadians,
+	rotatePoint
+} = util;
 
 util.object.extend(Gradient.prototype, {
 	/**
@@ -19,17 +29,35 @@ util.object.extend(Gradient.prototype, {
 	 * @since 1.0.0
 	 */
 	initialize(options = {}){
-		for (var prop in options) {
-			this[prop] = options[prop];
-		}
 		const id = times(20, () => random(36).toString(35)).join('');
 		this.id = `WPG_GRADIENT_ID-${id}`;
+		this.type = options.type || 'linear';
+		this.angle = options.angle;
 		if (this.type === 'linear'){
+			if (isUndefined(this.angle)){
+				const {
+					x1 = 0,
+					y1 = 0,
+					x2 = 1,
+					y2 = 0
+				} = (options.coords || {});
+				this.angle = Math.atan2(y1 - y2, x1 - x2) * 180 / Math.PI + 180;
+			}
+			const p1 = rotatePoint(
+				new Point(0, 0.5),
+				new Point(0.5, 0.5),
+				degreesToRadians(this.angle)
+			);
+			const p2 = rotatePoint(
+				new Point(1, 0.5),
+				new Point(0.5, 0.5),
+				degreesToRadians(this.angle)
+			);
 			this.coords = {
-				x1:0,
-				y1:0,
-				x2:1,
-				y2:0
+				x1:clamp(p1.x),
+				y1:clamp(p1.y),
+				x2:clamp(p2.x),
+				y2:clamp(p2.y)
 			};
 		} else if (this.type === 'radial'){
 			this.coords = {
@@ -41,7 +69,7 @@ util.object.extend(Gradient.prototype, {
 				r2:0.5
 			};
 		}
-		this.colorStops = (options.colorStops || []).slice()
+		this.colorStops = (options.colorStops || []).slice();
 	},
 	/**
 	 * Extend fabric.Gradient.prototype.toSVG()
@@ -49,7 +77,6 @@ util.object.extend(Gradient.prototype, {
 	 */
 	toSVG(object, options){
 		const coords = this.coords;
-		const transform = (this.gradientTransform || iMatrix).slice();
 		const markup = [];
 		const needsSwap = coords.r1 > coords.r2;
 		let colorStops = this.colorStops.slice(), i, l;
@@ -59,7 +86,6 @@ util.object.extend(Gradient.prototype, {
 				'<linearGradient ',
 				`id="${this.id}" `,
 				'gradientUnits="objectBoundingBox" ',
-				`gradientTransform="${util.matrixToSVG(transform)}" `,
 				`x1="${coords.x1}" `,
 				`y1="${coords.y1}" `,
 				`x2="${coords.x2}" `,
@@ -71,7 +97,6 @@ util.object.extend(Gradient.prototype, {
 				'<radialGradient ',
 				`id="${this.id}" `,
 				'gradientUnits="objectBoundingBox" ',
-				`gradientTransform="${util.matrixToSVG(transform)}" `,
 				`cx="${needsSwap ? coords.x1 : coords.x2}" `,
 				`cy="${needsSwap ? coords.y1 : coords.y2}" `,
 				`r="${needsSwap ? coords.r1 : coords.r2}" `,
