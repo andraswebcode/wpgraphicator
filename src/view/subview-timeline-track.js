@@ -3,7 +3,12 @@ import {
 	clone,
 	debounce,
 	each,
-	keys as _keys
+	keys as _keys,
+	min,
+	max,
+	uniq,
+	isObject,
+	findWhere
 } from 'underscore';
 import {
 	util
@@ -153,14 +158,23 @@ export default Subview.extend(/** @lends TimelineTrack.prototype */{
 
 	_onMouseDown(e){
 		const target = $(e.target);
+		// Do not refresh active points on mousedown if we click on popup.
+		if (target.is('.wpg-popup') || target.closest('.wpg-popup').length){
+			return;
+		}
 		const cid = target.data('cid') || target.parent().data('cid');
 		const pointView = this.views.getByCid('timeline-track-point', cid);
 		if (pointView){
-			this.setState('activeTrackPoints', [pointView]);
+			let activeTrackPoints = [pointView];
+			if (e.ctrlKey || e.metaKey){
+				activeTrackPoints = uniq(activeTrackPoints.concat(this.getState('activeTrackPoints') || []));
+			}
+			this.setState('activeTrackPoints', activeTrackPoints);
 		} else {
 			this._resetActiveTrackPoints();
 		}
 		this.__isDragging = true;
+		this.__startX = ('ontouchstart' in window) ? e.touches[0].clientX : e.clientX;
 	},
 
 	/**
@@ -182,18 +196,44 @@ export default Subview.extend(/** @lends TimelineTrack.prototype */{
 		if (!activeTrackPoints || !activeTrackPoints.length){
 			return;
 		}
-		const pointView = activeTrackPoints[0];
-		if (!pointView){
-			return;
-		}
 		const clientX = ('ontouchstart' in window) ? e.touches[0].clientX : e.clientX;
-		const offsetX = clientX - this.$el.offset().left;
 		const secondWidth = this.getState('secondWidth');
 		const seconds = this.getState('seconds');
-		const second = toFixed(offsetX / secondWidth);
-		pointView.model.set({
-			second:clamp(second, 0, seconds)
-		});
+		if (activeTrackPoints.length === 1){
+			const pointView = activeTrackPoints[0];
+			const offsetX = clientX - this.$el.offset().left;
+			const second = toFixed(offsetX / secondWidth);
+			pointView.model.set({
+				second:clamp(second, 0, seconds)
+			});
+		} else {
+			const clickedPointView = findWhere(activeTrackPoints, point => point.$('.wpg-timeline-track-point-diamond').is(':focus'));
+			const shapeIds = uniq(activeTrackPoints.map(point => point.model?.get('shapeId'))) || [];
+			const models = shapeIds.map(id => this.shapes.get(id));
+			const shapes = shapeIds.map(id => this.scene.getObjectById(id));
+			if (clickedPointView){
+				const offsetX = clientX - this.$el.offset().left;
+				const second = toFixed(offsetX / secondWidth);
+				const thatSec = clickedPointView?.model.get('second') || 0;
+				clickedPointView?.model.set({
+					second:clamp(second, 0, seconds)
+				});
+				each(activeTrackPoints, point => {
+					if (point === clickedPointView){
+						return;
+					}
+					const thisSec = point?.model.get('second') || 0;
+					const sec = toFixed(thisSec - thatSec + second);
+					point?.model.set({
+						second:clamp(sec, 0, seconds)
+					});
+				});
+			}
+			if (shapes.length > 1){
+				this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:change', shapes);
+			}
+		}
+		this.__startX = clientX;
 	},
 
 	/**

@@ -246,12 +246,15 @@ export default Base.extend(/** @lends Editor.prototype */{
 						}
 					});
 					if (!isEmpty(this.__objects)){
+						// let zIndex = 0;
 						each(this.__objects, (object, id) => {
 							if (object.objects && object.objects.length){
 								const group = new Group(object.objects, object.transform);
 								group.id = id;
+								// group.zIndex = zIndex++;
 								this.scene.add(group);
 							} else {
+								// object.zIndex = zIndex++;
 								this.scene.add(object);
 							}
 						});

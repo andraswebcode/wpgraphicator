@@ -278,11 +278,13 @@ export default Subview.extend(/** @lends ToolbarButtons.prototype */{
 		scene.forEachObject(shape => {
 			shape.selectable = true;
 		});
+		scene.selection = false;
 		scene.defaultCursor = scene.constructor.prototype.defaultCursor;
 		scene.moveCursor = scene.constructor.prototype.moveCursor;
 		scene.hoverCursor = scene.constructor.prototype.hoverCursor;
 		switch (activeTool){
 			case 'select-mode':
+			scene.selection = true;
 			scene.isDrawingMode = false;
 			this._createPathControls(true);
 			break;

@@ -20,7 +20,6 @@ const {
  * @augments Subview
  * @augments Base
  * @augments Backbone.View
- * @mixes TimelineShape
  */
 
 export default Subview.extend(/** @lends SettingsStats.prototype */{

@@ -42,7 +42,7 @@ export default Model.extend(/** @lends Property.prototype */{
 		this._transitions.add(this.get('transitions'));
 		this.on('change:transitions', (model, transitions) => this._transitions.set(transitions));
 		// Trigger 'wpg:pushtohistorystack' for history manager.
-		this.listenTo(this._transitions, 'add change remove', debounce(() => this.trigger('wpg:pushtohistorystack'), 400));
+		this.listenTo(this._transitions, 'add change remove', debounce(() => this.trigger('wpg:pushtohistorystack'), 400, true));
 	},
 
 	/**

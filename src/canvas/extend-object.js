@@ -45,7 +45,7 @@ util.object.extend(FabricObject.prototype, {
 		}
 		const id = times(20, () => random(36).toString(35)).join('');
 		const prefix = `wpgraphicator-${this.type}`;
-		if (!this.id || this.id.indexOf(prefix) !== 0){
+		if (!this.id || `${this.id}`.indexOf(prefix) !== 0){
 			this.id = `${prefix}-${id}`;
 		}
 		this._animationCache = reduce(animatables, (res, prop) => {
@@ -53,6 +53,22 @@ util.object.extend(FabricObject.prototype, {
 			return res;
 		}, {});
 	},
+	/**
+	 * Extend fabric.Object.prototype.moveTo()
+	 * @since 1.0.0
+	 *//*
+	moveTo(index){
+		if (this.group && this.group.type !== 'activeSelection') {
+			fabric.StaticCanvas.prototype.moveTo.call(this.group, this, index);
+		}
+		else if (this.canvas) {
+			this.canvas.moveTo(this, index);
+			each(this.canvas._objects, (obj, i) => {
+				obj.zIndex = i;
+			});
+		}
+		return this;
+	},*/
 	/**
 	 * Get stroke actual length.
 	 * @return {float|int}
@@ -179,6 +195,10 @@ util.object.extend(FabricObject.prototype, {
 			skewX,
 			skewY
 		};
+		// Debug.
+		if (this.group){
+			transform.opacity = this.opacity;
+		}
 		return [
 			this.id ? `class="${this.id}" ` : '',
 			`data-transform='${JSON.stringify(transform)}' `,

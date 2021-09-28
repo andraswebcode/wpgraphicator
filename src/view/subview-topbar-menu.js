@@ -1,12 +1,18 @@
 import $ from 'jquery';
 import {
+	Group,
 	loadSVGFromString
 } from 'fabric';
 import {
 	reduce,
 	clone,
 	omit,
-	each
+	each,
+	findWhere,
+	without,
+	min,
+	uniq,
+	isArray
 } from 'underscore';
 import {
 	i18n,
@@ -24,10 +30,12 @@ import Project from './frame-project.js';
 import TopbarSave from './subview-topbar-save.js';
 import {
 	notificationMessages,
-	keyboardShortcuts,
 	easings,
 	countShapesInSVGString
 } from './../utils/utils.js';
+import {
+	keyboardShortcuts
+} from './../utils/keyboard-shortcuts.js';
 import {
 	MAX_SVG_FILE_SIZE,
 	MAX_SVG_NUM_OF_SHAPES
@@ -48,7 +56,9 @@ const {
 	removeShape,
 	removeAllShapes,
 	removePoint,
-	removeAllPoints
+	removeAllPoints,
+	groupShapes,
+	ungroupShapes
 } = notificationMessages;
 
 /**
@@ -89,6 +99,8 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 
 	templateParams(){
 		const snapToGrid = this.getState('snapToGrid');
+		const shape = this.scene.getActiveObject();
+		const group = (shape?.type === 'group');
 		const hasntSelectedKeyframe = () => {
 			const views = this.getState('activeTrackPoints') || [];
 			return !(views.length && views[0]);
@@ -124,15 +136,21 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 				},{
 					name:'delete-shape',
 					title:__('Delete Selected Shape', 'wpgraphicator'),
-					disabled:() => !this.scene.getActiveObject()
+					disabled:() => !shape
 				},{
 					name:'copy-shape',
 					title:__('Copy Selected Shape', 'wpgraphicator'),
-					disabled:() => !this.scene.getActiveObject()
+					disabled:() => !shape
 				},{
 					name:'paste-shape',
 					title:__('Paste Shape', 'wpgraphicator'),
 					disabled:() => !(this.clipboard._object && this.clipboard._type === 'shape')
+				},{
+					name:'divider'
+				},{
+					name:'group-shapes',
+					title:group ? __('Ungroup Shapes', 'wpgraphicator') : __('Group Selected Shapes', 'wpgraphicator'),
+					disabled:() => !(shape?.type === 'activeSelection' || shape?.type === 'group')
 				},{
 					name:'divider'
 				},{
@@ -166,7 +184,6 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 					name:'clear-animation',
 					title:__('Clear Animation', 'wpgraphicator'),
 					disabled:() => {
-						const shape = this.scene.getActiveObject();
 						const shapeModel = this.shapes.get(shape?.id);
 						return !(shapeModel?._properties?.at(0)?._transitions.length);
 					}
@@ -360,19 +377,40 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 			break;
 			case 'paste-shape':
 			this.clipboard.paste(object => {
-				object.clone(newObject => {
-					this.clipboard.__shapeTop += 5;
-					this.clipboard.__shapeLeft += 5;
-					newObject.set({
-						top:this.clipboard.__shapeTop,
-						left:this.clipboard.__shapeLeft
+				this.clipboard.__shapeTop += 5;
+				this.clipboard.__shapeLeft += 5;
+				if (object.type === 'activeSelection'){
+					this.scene.discardActiveObject();
+					const shapes = [];
+					const models = [];
+					each(object._objects, obj => {
+						obj.clone(o => {
+							o.set({
+								top:this.clipboard.__shapeTop + (o.top - object.top),
+								left:this.clipboard.__shapeLeft + (o.left - object.left)
+							});
+							this.scene.add(o);
+							shapes.push(o);
+							models.push(this.shapes.get(o.id));
+						});
 					});
-					this.scene
-					.discardActiveObject()
-					.add(newObject)
-					.setActiveObject(newObject);
-				});
+					this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:add', shapes);
+				} else {
+					object.clone(newObject => {
+						newObject.set({
+							top:this.clipboard.__shapeTop,
+							left:this.clipboard.__shapeLeft
+						});
+						this.scene
+						.discardActiveObject()
+						.add(newObject)
+						.setActiveObject(newObject);
+					});
+				}
 			}, 'shape');
+			break;
+			case 'group-shapes':
+			this.__groupUngroupShapes();
 			break;
 			case 'clear-canvas':
 			if (this.scene._objects.length){
@@ -400,8 +438,9 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 					removePoint,
 					'warning',
 					() => {
-						const pointView = activeTrackPoints[0];
-						pointView?.model.collection.remove(pointView?.model);
+						each(activeTrackPoints, point => {
+							point.model?.collection.remove(point.model);
+						});
 					},
 					true
 				);
@@ -409,26 +448,53 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 			break;
 			case 'copy-transition':
 			if (activeTrackPoints && activeTrackPoints.length && activeTrackPoints[0].model){
-				this.clipboard.copy(activeTrackPoints[0].model, 'transition')
+				if (activeTrackPoints.length === 1){
+					this.clipboard.copy(activeTrackPoints[0].model, 'transition');
+				} else {
+					this.clipboard.copy(activeTrackPoints.map(point => point.model), 'transition');
+				}
 			}
 			break;
 			case 'paste-transition':
 			this.clipboard.paste(model => {
-				if (!shapeModel){
-					return;
+				const currentTime = this.getState('currentTime');
+				if (isArray(model)){ // In case of multiple points.
+					const shapeIds = uniq(model.map(m => m.get('shapeId')));
+					const selectedShapes = this.getState('selectedShapeIds') || [];
+					const minSec = min(model, m => m.get('second'))?.get('second');
+					each(model, model => {
+						const transitionModel = model.clone();
+						const property = model.get('property');
+						const second = model.get('second');
+						const shapeId = (shapeIds.length === 1 && selectedShapes.length === 1) ? selectedShapes[0] : model.get('shapeId');
+						const shapeModel = this.shapes.get(shapeId);
+						const propModel = shapeModel._properties.get(property) || shapeModel._properties.add({
+							id:property,
+							shapeId
+						});
+						transitionModel.set({
+							shapeId,
+							second:second - minSec + currentTime
+						});
+						propModel._transitions.add(transitionModel);
+					});
+				} else { // In case of a single point.
+					if (!shapeModel){
+						return;
+					}
+					const transitionModel = model.clone();
+					const property = model.get('property');
+					const shapeId = shapeModel.get('id');
+					const propModel = shapeModel._properties.get(property) || shapeModel._properties.add({
+						id:property,
+						shapeId
+					});
+					transitionModel.set({
+						shapeId,
+						second:currentTime
+					});
+					propModel._transitions.add(transitionModel);
 				}
-				const transitionModel = model.clone();
-				const property = model.get('property');
-				const shapeId = shapeModel.get('id');
-				const propModel = shapeModel._properties.get(property) || shapeModel._properties.add({
-					id:property,
-					shapeId
-				});
-				transitionModel.set({
-					shapeId,
-					second:this.getState('currentTime')
-				});
-				propModel._transitions.add(transitionModel);
 			}, 'transition');
 			break;
 			case 'default-easing':
@@ -473,7 +539,7 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 
 	/**
 	 *
-	 * @since 1.0.0
+	 * @since 1.1.0
 	 * @access private
 	 * @param {object} e Event.
 	 */
@@ -512,7 +578,7 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 
 	/**
 	 *
-	 * @since 1.0.0
+	 * @since 1.1.0
 	 * @access private
 	 * @param {object} e Event.
 	 */
@@ -579,7 +645,7 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 
 	/**
 	 *
-	 * @since 1.0.0
+	 * @since 1.1.0
 	 * @access private
 	 * @param {object} e Event.
 	 */
@@ -598,8 +664,10 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 		}
 
 		this.$('.wpg-topbar-menu__modal-svg-import-loader').css('display', 'flex');
+		$('.wpg-topbar__loader').show();
 
 		const resetCanvas = this.$('.wpg-topbar-menu__modal-svg-import-reset-canvas')[0].checked;
+		const groupLayers = this.$('.wpg-topbar-menu__modal-svg-import-group-layers')[0].checked;
 		const strokeWidth = fabric.Object.prototype.strokeWidth;
 		const fill = fabric.Object.prototype.fill;
 
@@ -616,16 +684,27 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 							projectHeight:options.height
 						});
 					}
-					each(shapes, shape => this.scene.add(shape));
-					const models = shapes.map(({id}) => this.shapes.get(id));
-					this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:add', shapes);
+					if (groupLayers){
+						console.time('SVG Loaded');
+						const group = new Group(shapes);
+						this.scene.add(group);
+						console.timeEnd('SVG Loaded');
+					} else {
+						console.time('SVG Loaded');
+						each(shapes, shape => this.scene.add(shape));
+						console.timeEnd('SVG Loaded');
+						const models = shapes.map(({id}) => this.shapes.get(id));
+						this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:add', shapes);
+					}
 					this._closeDopdown();
+					$('.wpg-topbar__loader').hide();
 				});
 			} catch (e){
 				console.error(e);
 				fabric.Object.prototype.strokeWidth = strokeWidth;
 				fabric.Object.prototype.fill = fill;
 				this._closeDopdown();
+				$('.wpg-topbar__loader').hide();
 				this.sendNotice(
 					__('Something went wrong while parsing svg.', 'wpgraphicator'),
 					'error'
@@ -709,6 +788,8 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 			if (e.ctrlKey || e.metaKey){
 				e.preventDefault();
 				this.setState('snapToGrid', !this.getState('snapToGrid'));
+			} else if (e.altKey && e.shiftKey){
+				this.__groupUngroupShapes();
 			}
 			break;
 			case 67: // C
@@ -728,6 +809,13 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 					},
 					true
 				);
+			}
+			break;
+			case 70: // F
+			if (e.ctrlKey || e.metaKey){
+				e.preventDefault();
+				this._fitSceneToScreen();
+				this._setProjectBackground();
 			}
 			break;
 			default:
@@ -810,6 +898,116 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 			return res;
 		}, '');
 		return `[wpgraphicator id=${id}${params}]`;
+	},
+
+	/**
+	 *
+	 * @since 1.2.0
+	 * @access private
+	 */
+
+	__groupUngroupShapes(){
+		const shape = this.scene.getActiveObject();
+		if (shape?.type === 'activeSelection'){
+			this.sendNotice(
+				groupShapes,
+				'warning',
+				() => {
+					const existingGroup = findWhere(shape._objects, {
+						type:'group'
+					});
+					let group = null;
+					if (existingGroup){
+						group = new Group([]);
+						this.scene.add(group);
+						// const restObjects = without(shape._objects, existingGroup);
+						const fromShapes = shape._objects.slice();
+						const fromModels = fromShapes.map(o => this.shapes.get(o.id));
+						this.scene.discardActiveObject();
+						each(shape._objects, obj => {
+							if (obj?.type === 'group'){
+								const objs = obj._objects.slice();
+								obj.toActiveSelection();
+								this.scene.discardActiveObject();
+								each(objs, o => {
+									this.scene.remove(o);
+									group.addWithUpdate(o);
+								});
+								// obj.toActiveSelection() removes _objects array.
+								// @see fabric.Group.prototype.toActiveSelection()
+								obj._objects = objs;
+							} else {
+								this.scene.remove(obj);
+								group.addWithUpdate(obj);
+							}
+						});
+						this.scene.setActiveObject(group);
+						this.shapes.trigger('wpg:pushtohistorystack', {
+							from:fromModels,
+							to:this.shapes.get(group.id)
+						}, 'replace', {
+							from:fromShapes,
+							to:group
+						});
+					} else {
+						const fromShapes = shape._objects.slice();
+						const fromModels = fromShapes.map(o => this.shapes.get(o.id));
+						const index = min(shape._objects, 'zIndex')?.zIndex;
+						group = shape.toGroup();
+						while (group.zIndex > index){
+							if (this.shapes.get(group.id)?.moveBackward()){
+								group.sendBackwards();
+							}
+						}
+						this.scene
+						.discardActiveObject()
+						.setActiveObject(group);
+						this.shapes.trigger('wpg:pushtohistorystack', {
+							from:fromModels,
+							to:this.shapes.get(group.id)
+						}, 'replace', {
+							from:fromShapes,
+							to:group
+						});
+					}
+				},
+				true
+			);
+		} else if (shape?.type === 'group'){
+			this.sendNotice(
+				ungroupShapes,
+				'warning',
+				() => {
+					$('.wpg-topbar__loader').show();
+					setTimeout(() => {
+						const fromModel = this.shapes.get(shape.id);
+						const toShapes = shape._objects.slice();
+						const index = shape.zIndex;
+						const activeSelection = shape.toActiveSelection();
+						each(activeSelection._objects, (object, i) => {
+							while (object.zIndex > index + i){
+								this.shapes.get(object.id)?.moveBackward();
+							}
+							object.moveTo(index + i);
+						});
+						this.scene
+						.discardActiveObject()
+						.setActiveObject(activeSelection);
+						const toModels = toShapes.map(o => this.shapes.get(o.id));
+						shape._objects = toShapes.slice();
+						this.shapes.trigger('wpg:pushtohistorystack', {
+							from:fromModel,
+							to:toModels
+						}, 'replace', {
+							from:shape,
+							to:toShapes
+						});
+						$('.wpg-topbar__loader').hide();
+					}, 40);
+				},
+				true
+			);
+		}
 	},
 
 	/**

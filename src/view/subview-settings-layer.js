@@ -50,7 +50,8 @@ export default Subview.extend(/** @lends SettingsLayer.prototype */{
 
 	templateParams(){
 		return {
-			shapeName:shapeNames[this.model.get('type')]
+			shapeName:shapeNames[this.model.get('type')],
+			isMultiSelection:this._isMultiSelection.bind(this)
 		};
 	},
 
@@ -61,19 +62,40 @@ export default Subview.extend(/** @lends SettingsLayer.prototype */{
 	 */
 
 	initialize(){
-		this.listenTo(this.state, 'change:selectedShapeIds', this._toggleActiveClass);
+		this.listenTo(this.state, 'change:selectedShapeIds', this._onChangeShapeIds);
+		this.listenTo(this.model, 'change:zIndex', this._updateZIndex);
 	},
 
 	/**
 	 *
-	 * @since 1.0.0
+	 * @since 1.2.0
 	 * @access private
 	 * @param {object} state
 	 * @param {array} selectedShapeIds
 	 */
 
-	_toggleActiveClass(state, selectedShapeIds){
+	_onChangeShapeIds(state, selectedShapeIds){
 		this.$el.toggleClass('active', contains(selectedShapeIds, this.model.get('id')));
+		if (this._isMultiSelection()){
+			this.$('.wpg-settings-layer__move-button').attr('disabled', true);
+			this.$('.wpg-settings-layer__copy-button').attr('disabled', true);
+		} else {
+			this.$('.wpg-settings-layer__move-button').removeAttr('disabled');
+			this.$('.wpg-settings-layer__copy-button').removeAttr('disabled');
+		}
+	},
+
+	/**
+	 *
+	 * @since 1.2.0
+	 * @access private
+	 * @param {object} model
+	 * @param {array} zIndex
+	 */
+
+	_updateZIndex(model, zIndex){
+		const shape = this.scene.getObjectById(this.model.get('id')) || {};
+		shape.zIndex = zIndex;
 	},
 
 	/**
@@ -85,6 +107,9 @@ export default Subview.extend(/** @lends SettingsLayer.prototype */{
 
 	_moveLayer(e){
 		e.preventDefault();
+		if (this._isMultiSelection()){ // Disable move on multiselection.
+			return;
+		}
 		const target = $(e.target);
 		const layerWrapper = target.closest('.wpg-settings-layer');
 		const direction = target.data('direction') || target.parent().data('direction');
@@ -109,6 +134,9 @@ export default Subview.extend(/** @lends SettingsLayer.prototype */{
 
 	_copyShape(e){
 		e.preventDefault();
+		if (this._isMultiSelection()){ // Disable copy on multiselection.
+			return;
+		}
 		const shape = this.scene.getObjectById(this.model.get('id'));
 		shape.clone(newShape => {
 			newShape.set({
@@ -120,6 +148,17 @@ export default Subview.extend(/** @lends SettingsLayer.prototype */{
 			.add(newShape)
 			.setActiveObject(newShape);
 		});
+	},
+
+	/**
+	 *
+	 * @since 1.2.0
+	 * @access private
+	 * @return {bool}
+	 */
+
+	_isMultiSelection(){
+		return (this.getState('selectedShapeIds')?.length > 1);
 	},
 
 	/**

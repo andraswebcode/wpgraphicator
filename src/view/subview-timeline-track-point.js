@@ -8,7 +8,9 @@ import {
 import {
 	contains,
 	throttle,
-	debounce
+	debounce,
+	each,
+	uniq
 } from 'underscore';
 import {
 	createPopperLite,
@@ -17,7 +19,6 @@ import {
 } from '@popperjs/core';
 
 import Subview from './subview.js';
-import SettingsShape from './subview-settings-shape.js';
 import {
 	notificationMessages,
 	replaceCollidedParams,
@@ -115,7 +116,12 @@ export default Subview.extend(/** @lends TimelineTrackPoint.prototype */{
 			this.model.get('value'),
 			this.model.get('second')
 		);
-		const propertyName = propertyNames[this.model.get('property')];
+		const activeTrackPoints = this.getState('activeTrackPoints') || [];
+		const propertyName = activeTrackPoints.length === 1 ? propertyNames[this.model.get('property')] :
+		uniq(activeTrackPoints.map(point => {
+			const property = point.model?.get('property');
+			return propertyNames[property];
+		})).join(' - ');
 		return {
 			cid:this.cid,
 			title,
@@ -246,7 +252,12 @@ export default Subview.extend(/** @lends TimelineTrackPoint.prototype */{
 	_changeEasing(e){
 		const target = $(e.target);
 		const easing = target.val();
-		this.model.set('easing', easing);
+		const activeTrackPoints = this.getState('activeTrackPoints') || [];
+		if (activeTrackPoints.length === 1){
+			this.model.set('easing', easing);
+		} else {
+			each(activeTrackPoints, point => point?.model.set('easing', easing));
+		}
 		this.scene.requestRenderAll();
 	},
 
@@ -361,7 +372,14 @@ export default Subview.extend(/** @lends TimelineTrackPoint.prototype */{
 			'warning',
 			() => {
 				this.setState('trackPointViewShowPopup', '');
-				this.model.collection.remove(this.model);
+				const activeTrackPoints = this.getState('activeTrackPoints') || [];
+				if (activeTrackPoints.length === 1){
+					this.model.collection.remove(this.model);
+				} else {
+					each(activeTrackPoints, point => {
+						point.model?.collection.remove(point.model);
+					});
+				}
 			},
 			true
 		);
@@ -441,6 +459,7 @@ export default Subview.extend(/** @lends TimelineTrackPoint.prototype */{
 	_focusDiamond(e){
 		e?.preventDefault();
 		this.$('.wpg-timeline-track-point-diamond').trigger('focus');
+		this.__focused = true;
 	},
 
 	/**
@@ -451,6 +470,19 @@ export default Subview.extend(/** @lends TimelineTrackPoint.prototype */{
 
 	_sortCollection(){
 		this.model?.collection.sort();
+		// After model's collection have sorted, we rerender the views.
+		// So we need to refocus on diamond if we focused before.
+		// And we need to check, whether the point is visible for fixing css left bug,
+		// When the parent is overflow: hidden, and the element is focused.
+		const left = parseInt(this.$el.css('left'));
+		const trackWidth = this.$el.closest('.wpg-timeline-shape__tracks').width();
+		const timelineLeft = this.getState('timelineLeft');
+		const visibleRight = (left + timelineLeft < trackWidth);
+		const visibleLeft = (left + timelineLeft >= 0);
+		if (this.__focused && contains(this.getState('activeTrackPoints'), this) && visibleRight && visibleLeft){
+			this.__focused = false;
+			this._focusDiamond();
+		}
 	},
 
 	/**
@@ -480,36 +512,93 @@ export default Subview.extend(/** @lends TimelineTrackPoint.prototype */{
 		const seconds = this.getState('seconds');
 		const second = this.model.get('second');
 		const n = 1 / 10 ** FRACTION_DIGITS;
+		const activeTrackPoints = this.getState('activeTrackPoints') || [];
+		const shapeIds = uniq(activeTrackPoints.map(point => point.model?.get('shapeId'))) || [];
+		const models = shapeIds.map(id => this.shapes.get(id));
+		const shapes = shapeIds.map(id => this.scene.getObjectById(id));
 		switch (e.keyCode){
 			case 39: // Arrow right
 			e.preventDefault();
-			this.model.set('second', toFixed(Math.min(second + n, seconds)));
+			if (activeTrackPoints.length === 1){
+				this.model.set('second', toFixed(Math.min(second + n, seconds)));
+			} else {
+				each(activeTrackPoints, point => {
+					const sec = point.model?.get('second');
+					point.model?.set('second', toFixed(Math.min(sec + n, seconds)));
+				});
+				if (shapes.length > 1){
+					this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:change', shapes);
+				}
+			}
 			this._sortCollection();
 			break;
 			case 37: // Arrow left
 			e.preventDefault();
-			this.model.set('second', toFixed(Math.max(second - n, 0)));
+			if (activeTrackPoints.length === 1){
+				this.model.set('second', toFixed(Math.max(second - n, 0)));
+			} else {
+				each(activeTrackPoints, point => {
+					const sec = point.model?.get('second');
+					point.model?.set('second', toFixed(Math.max(sec - n, 0)));
+				});
+				if (shapes.length > 1){
+					this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:change', shapes);
+				}
+			}
 			this._sortCollection();
 			break;
 			case 38: // Arrow up
 			e.preventDefault();
-			this.model.set('second', toFixed(Math.min(Math.round(second) + 1, seconds)));
+			if (activeTrackPoints.length === 1){
+				this.model.set('second', toFixed(Math.min(Math.round(second) + 1, seconds)));
+			} else {
+				each(activeTrackPoints, point => {
+					const sec = point.model?.get('second');
+					point.model?.set('second', toFixed(Math.min(Math.round(sec) + 1, seconds)));
+				});
+				if (shapes.length > 1){
+					this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:change', shapes);
+				}
+			}
 			this._sortCollection();
 			break;
 			case 40: // Arrow down
 			e.preventDefault();
-			this.model.set('second', toFixed(Math.max(Math.round(second) - 1, 0)));
+			if (activeTrackPoints.length === 1){
+				this.model.set('second', toFixed(Math.max(Math.round(second) - 1, 0)));
+			} else {
+				each(activeTrackPoints, point => {
+					const sec = point.model?.get('second');
+					point.model?.set('second', toFixed(Math.max(Math.round(sec) - 1, 0)));
+				});
+				if (shapes.length > 1){
+					this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:change', shapes);
+				}
+			}
 			this._sortCollection();
 			break;
 			case 74: // J
-			this.model.set('second', this.getState('currentTime'));
+			if (activeTrackPoints.length === 1){
+				this.model.set('second', this.getState('currentTime'));
+			} else {
+				each(activeTrackPoints, point => {
+					point.model?.set('second', this.getState('currentTime'));
+				});
+				if (shapes.length > 1){
+					this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:change', shapes);
+				}
+			}
 			break;
 			case 32: // Space
 			this._openPopup(e);
 			break;
 			case 67: // C
 			if (e.ctrlKey){
-				this.clipboard.copy(this.model, 'transition');
+				if (activeTrackPoints.length === 1){
+					this.clipboard.copy(this.model, 'transition');
+				} else {
+					this.clipboard.copy(activeTrackPoints.map(point => point.model), 'transition');
+				}
 			}
 			break;
 			case 46: // Delete
@@ -522,9 +611,12 @@ export default Subview.extend(/** @lends TimelineTrackPoint.prototype */{
 
 	/**
 	 *
-	 * @since 1.0.0
+	 * @since 1.2.0
+	 * @return {object}
 	 */
 
-	_getSelectedShape:SettingsShape.prototype._getSelectedShape
+	_getSelectedShape(){
+		return this.scene.getActiveObject() || {};
+	}
 
 });

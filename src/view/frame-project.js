@@ -29,7 +29,8 @@ import {
 	clamp,
 	animatables,
 	notificationMessages,
-	createSceneBackground
+	createSceneBackground,
+	shapeReplace
 } from './../utils/utils.js';
 import {
 	MIN_ZOOM,
@@ -331,11 +332,20 @@ export default Frame.extend(/** @lends Project.prototype */{
 	 */
 
 	_onSceneObjectAdded({target}){
+		each(this.scene._objects, (object, i) => {
+			object.zIndex = i;
+		});
 		const shapeModel = this.shapes.add({
 			id:target.id,
-			type:target.type
+			type:target.type,
+			zIndex:target.zIndex
 		});
 		shapeModel.trigger('wpg:pushtohistorystack', shapeModel, 'add', target);
+		this.shapes.each(shape => {
+			const zIndex = this.scene.getObjectById(shape.get('id'))?.zIndex;
+			shape.set('zIndex', zIndex);
+		});
+		this.shapes.sort();
 	},
 
 	/**
@@ -899,26 +909,19 @@ export default Frame.extend(/** @lends Project.prototype */{
 				__('You have drawn an ellipse with same width and height. Do you want to replace this with a circle?', 'wpgraphicator'),
 				'warning',
 				() => {
-					const {
-						top,
-						left,
-						stroke,
-						strokeWidth,
-						fill,
-						rx
-					} = shape;
-					const circle = new Circle({
-						top,
-						left,
-						stroke,
-						strokeWidth,
-						fill,
-						radius:rx
-					});
+					const fromModel = this.shapes.get(shape.id);
+					const circle = shapeReplace.ellipse.circle(shape);
 					this.scene
 					.remove(shape)
 					.add(circle)
 					.requestRenderAll();
+					this.shapes.trigger('wpg:pushtohistorystack', {
+						from:fromModel,
+						to:this.shapes.get(circle.id)
+					}, 'replace', {
+						from:shape,
+						to:circle
+					});
 				},
 				true
 			);
@@ -974,28 +977,73 @@ export default Frame.extend(/** @lends Project.prototype */{
 						} else {
 							shape.path = shape.path.filter(p => p[0] === 'M' || p !== shape.path[control.index]);
 						}
-						shape._createPathControls(false, true);
-						this.scene
-						.fire('object:modified', {
-							target:shape,
-							action:control.actionName
-						})
-						.requestRenderAll();
+						if (shape.path.length === 1){
+							this.scene.remove(shape);
+						} else {
+							shape._createPathControls(false, true);
+							this.scene
+							.fire('object:modified', {
+								target:shape,
+								action:control.actionName
+							})
+							.requestRenderAll();
+						}
 					}
 					break;
 					case 'draw-polyline':
 					if (shape._currentPolylineControl){
 						shape.points = shape.points.filter(p => p !== shape.points[shape._currentPolylineControl.index]);
-						shape._createPolylineControls(false, true);
-						if (shape.points.length > 1){
-							shape._currentPolylineControl = last(_values(shape.controls));
+						if (shape.points.length === 1){
+							this.scene.remove(shape);
+						} else {
+							shape._createPolylineControls(false, true);
+							if (shape.points.length > 1){
+								shape._currentPolylineControl = last(_values(shape.controls));
+							}
+							this.scene
+							.fire('object:modified', {
+								target:shape,
+								action:shape._currentPolylineControl.actionName
+							})
+							.requestRenderAll();
 						}
-						this.scene
-						.fire('object:modified', {
-							target:shape,
-							action:shape._currentPolylineControl.actionName
-						})
-						.requestRenderAll();
+					}
+					break;
+					case 'edit-path':
+					if (shape._currentPathControl){
+						const control = shape._currentPathControl;
+						if (control.type === 'c1'){
+							// Do something...
+						} else {
+							shape.path = shape.path.filter(p => p[0] === 'M' || p !== shape.path[control.index]);
+						}
+						if (shape.path.length === 1){
+							this.scene.remove(shape);
+						} else {
+							shape._createPathControls(false, true);
+							this.scene
+							.fire('object:modified', {
+								target:shape,
+								action:control.actionName
+							})
+							.requestRenderAll();
+						}
+					} else if (shape._currentPolylineControl){
+						shape.points = shape.points.filter(p => p !== shape.points[shape._currentPolylineControl.index]);
+						if (shape.points.length === 1){
+							this.scene.remove(shape);
+						} else {
+							shape._createPolylineControls(false, true);
+							if (shape.points.length > 1){
+								shape._currentPolylineControl = last(_values(shape.controls));
+							}
+							this.scene
+							.fire('object:modified', {
+								target:shape,
+								action:shape._currentPolylineControl.actionName
+							})
+							.requestRenderAll();
+						}
 					}
 					break;
 					default:
@@ -1070,18 +1118,36 @@ export default Frame.extend(/** @lends Project.prototype */{
 			case 86: // V
 			if (e.ctrlKey || e.metaKey){
 				this.clipboard.paste(object => {
-					object.clone(newObject => {
-						this.clipboard.__shapeTop += 5;
-						this.clipboard.__shapeLeft += 5;
-						newObject.set({
-							top:this.clipboard.__shapeTop,
-							left:this.clipboard.__shapeLeft
+					this.clipboard.__shapeTop += 5;
+					this.clipboard.__shapeLeft += 5;
+					if (object.type === 'activeSelection'){
+						this.scene.discardActiveObject();
+						const shapes = [];
+						const models = [];
+						each(object._objects, obj => {
+							obj.clone(o => {
+								o.set({
+									top:this.clipboard.__shapeTop + (o.top - object.top),
+									left:this.clipboard.__shapeLeft + (o.left - object.left)
+								});
+								this.scene.add(o);
+								shapes.push(o);
+								models.push(this.shapes.get(o.id));
+							});
 						});
-						this.scene
-						.discardActiveObject()
-						.add(newObject)
-						.setActiveObject(newObject);
-					});
+						this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:add', shapes);
+					} else {
+						object.clone(newObject => {
+							newObject.set({
+								top:this.clipboard.__shapeTop,
+								left:this.clipboard.__shapeLeft
+							});
+							this.scene
+							.discardActiveObject()
+							.add(newObject)
+							.setActiveObject(newObject);
+						});
+					}
 				}, 'shape');
 			}
 			break;

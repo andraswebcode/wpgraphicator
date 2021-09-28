@@ -45,9 +45,9 @@ export default Model.extend(/** @lends Shape.prototype */{
 	initialize(){
 		this._properties = new Properties(this.get('properties'));
 		this.on('change:properties', (model, properties) => this._properties.set(properties));
-		this.set('zIndex', this.collection._zIndex, {
-			silent:true
-		});
+		// this.set('zIndex', this.collection._zIndex, {
+		// 	silent:true
+		// });
 		setTimeout(() => {
 			this._setStartDuration();
 			// Save initial state of this model.

@@ -3,6 +3,11 @@ import {
 	i18n
 } from 'wordpress';
 import {
+	Circle,
+	Ellipse,
+	Path,
+	Polygon,
+	Polyline,
 	Point,
 	Shadow,
 	Gradient,
@@ -14,6 +19,7 @@ import {
 	isUndefined,
 	each,
 	pick,
+	omit,
 	isEqual,
 	isString,
 	isEmpty
@@ -101,7 +107,9 @@ export const notificationMessages = {
 	removeAllShapes:__('Are you sure you want to remove all shapes from the canvas?', 'wpgraphicator'),
 	removeProperty:__('Are you sure you want to remove this property from the timeline?', 'wpgraphicator'),
 	removePoint:__('Are you sure you want to remove this keyframe?', 'wpgraphicator'),
-	removeAllPoints:__('Are you sure you want to delete all animations from this shape?', 'wpgraphicator')
+	removeAllPoints:__('Are you sure you want to delete all animations from this shape?', 'wpgraphicator'),
+	groupShapes:__('Are you sure you want to group shapes? Note that the animations will be removed in this case.', 'wpgraphicator'),
+	ungroupShapes:__('Are you sure you want to ungroup shapes? Note that the animations will be removed in this case.', 'wpgraphicator')
 };
 
 /**
@@ -235,197 +243,6 @@ export const stateProperties = [
 ];
 
 /**
- * A list of keyboard shortcuts, and descriptions.
- * @since 1.0.0
- * @var {array}
- */
-
-export const keyboardShortcuts = [{
-	title:__('Global', 'wpgraphicator'),
-	shortcuts:[{
-		combination:'Ctrl + S',
-		description:__('Save Project as Published.', 'wpgraphicator')
-	},{
-		combination:'Ctrl + D',
-		description:__('Save Project as Draft.', 'wpgraphicator')
-	},{
-		combination:'Ctrl + Z',
-		description:__('Undo', 'wpgraphicator')
-	},{
-		combination:'Ctrl + V',
-		description:__('Paste Shape, or Keyframe.', 'wpgraphicator')
-	},{
-		combination:'Ctrl + G',
-		description:__('Turn on/Off Snap to Grid.', 'wpgraphicator')
-	},{
-		combination:'Space',
-		description:__('Play/Pause Animation.', 'wpgraphicator')
-	},{
-		combination:'Esc',
-		description:__('Clear Selection.', 'wpgraphicator')
-	},{
-		combination:'Shift + Alt + C',
-		description:__('Clear Canvas.', 'wpgraphicator')
-	}]
-},{
-	title:__('Toolbar', 'wpgraphicator'),
-	shortcuts:[{
-		combination:'Enter',
-		description:__('Select Mode', 'wpgraphicator')
-	},{
-		combination:'D',
-		description:__('Free Draw', 'wpgraphicator')
-	},{
-		combination:'R',
-		description:__('Draw Square', 'wpgraphicator')
-	},{
-		combination:'C',
-		description:__('Draw Ellipse', 'wpgraphicator')
-	},{
-		combination:'T',
-		description:__('Add Text', 'wpgraphicator')
-	},{
-		combination:'P',
-		description:__('Draw Path', 'wpgraphicator')
-	},{
-		combination:'Q',
-		description:__('Draw Polyline', 'wpgraphicator')
-	},{
-		combination:'E',
-		description:__('Edit Path', 'wpgraphicator')
-	},{
-		combination:'I',
-		description:__('Add Image', 'wpgraphicator')
-	},{
-		combination:'+',
-		description:__('Zoom In', 'wpgraphicator')
-	},{
-		combination:'-',
-		description:__('Zoom Out', 'wpgraphicator')
-	}]
-},{
-	title:__('Focus on Canvas', 'wpgraphicator'),
-	shortcuts:[{
-		combination:'Arrow Up',
-		description:__('Move Selected Shape Up.', 'wpgraphicator')
-	},{
-		combination:'Arrow Down',
-		description:__('Move Selected Shape Down.', 'wpgraphicator')
-	},{
-		combination:'Arrow Left',
-		description:__('Move Selected Shape Left.', 'wpgraphicator')
-	},{
-		combination:'Arrow Right',
-		description:__('Move Selected Shape Right.', 'wpgraphicator')
-	},{
-		combination:'Ctrl + C',
-		description:__('Copy Selected Shape.', 'wpgraphicator')
-	},{
-		combination:'Delete',
-		description:__('Delete Selected Shape.', 'wpgraphicator')
-	}]
-},{
-	title:__('Focus on a Keyframe', 'wpgraphicator'),
-	shortcuts:[{
-		combination:'Arrow Up',
-		description:__('Move Selected Keyframe Forward Per Second.', 'wpgraphicator')
-	},{
-		combination:'Arrow Down',
-		description:__('Move Selected Keyframe Backward Per Second.', 'wpgraphicator')
-	},{
-		combination:'Arrow Left',
-		description:__('Move Selected Keyframe Backward Per 10 Millieconds.', 'wpgraphicator')
-	},{
-		combination:'Arrow Right',
-		description:__('Move Selected Keyframe Forward Per 10 Millieconds.', 'wpgraphicator')
-	},{
-		combination:'J',
-		description:__('Jump Selected Keyframe to The Playhead.', 'wpgraphicator')
-	},{
-		combination:'Ctrl + C',
-		description:__('Copy Selected Keyframe.', 'wpgraphicator')
-	},{
-		combination:'Space',
-		description:__('Open Keyframe Settings Popup.', 'wpgraphicator')
-	},{
-		combination:'Delete',
-		description:__('Delete Selected Keyframe.', 'wpgraphicator')
-	}]
-},{
-	title:__('Focus on Playhead', 'wpgraphicator'),
-	shortcuts:[{
-		combination:'Arrow Up',
-		description:__('Move Playhead Forward Per Second.', 'wpgraphicator')
-	},{
-		combination:'Arrow Down',
-		description:__('Move Playhead Backward Per Second.', 'wpgraphicator')
-	},{
-		combination:'Arrow Left',
-		description:__('Move Playhead Backward Per 10 Millieconds.', 'wpgraphicator')
-	},{
-		combination:'Arrow Right',
-		description:__('Move Playhead Forward Per 10 Millieconds.', 'wpgraphicator')
-	},{
-		combination:'Home',
-		description:__('Move Playhead to 0 Second.', 'wpgraphicator')
-	},{
-		combination:'End',
-		description:__('Move Playhead to The End.', 'wpgraphicator')
-	}]
-},{
-	title:__('Drawing Shape', 'wpgraphicator'),
-	shortcuts:[{
-		combination:'Ctrl',
-		description:__('Keep Aspect Ratio.', 'wpgraphicator')
-	}]
-},{
-	title:__('Editing Text', 'wpgraphicator'),
-	shortcuts:[{
-		combination:'Up/Down/Left/Right',
-		description:__('Move Cursor.', 'wpgraphicator')
-	},{
-		combination:'Shift + Left/Right',
-		description:__('Select Character.', 'wpgraphicator')
-	},{
-		combination:'Shift + Up/Down',
-		description:__('Select Text Vertically.', 'wpgraphicator')
-	},{
-		combination:'Alt + Left/Right',
-		description:__('Move Cursor by Word.', 'wpgraphicator')
-	},{
-		combination:'Shift + Alt + Left/Right',
-		description:__('Select Words.', 'wpgraphicator')
-	},{
-		combination:'Home',
-		description:__('Move Cursor to Line Start.', 'wpgraphicator')
-	},{
-		combination:'End',
-		description:__('Move Cursor to Line End.', 'wpgraphicator')
-	},{
-		combination:'Backspace',
-		description:__('Delete Character Backward.', 'wpgraphicator')
-	},{
-		combination:'Delete',
-		description:__('Delete Character Forward.', 'wpgraphicator')
-	},{
-		combination:'Ctrl + X',
-		description:__('Cut Selected Text.', 'wpgraphicator')
-	},{
-		combination:'Ctrl + C',
-		description:__('Copy Selected Text.', 'wpgraphicator')
-	},{
-		combination:'Ctrl + V',
-		description:__('Paste Selected Text.', 'wpgraphicator')
-	},{
-		combination:'Ctrl + A',
-		description:__('Select All.', 'wpgraphicator')
-	},{
-		combination:'Tab/Esc',
-		description:__('Quit Editing.', 'wpgraphicator')
-	}]
-}];
-
-/**
  * Create grid pattern, and background color for scene.
  * @since 1.0.0
  * @param {float} zoom
@@ -487,6 +304,103 @@ export const replaceCollidedParams = {
 		return replacement; // In case of color.
 	},
 	shadow:replacement => new Shadow(replacement)
+};
+
+/**
+ *
+ * @since 1.2.0
+ * @param {object} shape Original shape.
+ * @return {object} New shape.
+ */
+
+export const shapeReplace = {
+	rect:{
+		path:shape => {
+			const options = omit(shape.toObject(), 'version', 'type');
+			const w = options.width;
+			const h = options.height;
+			const w4 = width / 4;
+			const h4 = height / 4;
+			const path = `
+				M 0 0
+				C ${w4} 0 ${(w - w4)} 0 ${w} 0
+				${w} ${h4} ${w} ${(h - h4)} ${w} ${h}
+				${(w - w4)} ${h} ${w4} ${h} 0 ${h}
+				${(h - h4)} 0 ${h4} 0 0 0 Z
+			`;
+			return new Path(path, options);
+		},
+		polyline:shape => {
+			const options = omit(shape.toObject(), 'version', 'type');
+			const w = options.width;
+			const h = options.height;
+			const points = [
+				new Point(0, 0),
+				new Point(w, 0),
+				new Point(w, h),
+				new Point(0, h),
+				new Point(0, 0)
+			];
+			return new Polyline(points, options);
+		},
+		polygon:shape => {
+			const options = omit(shape.toObject(), 'version', 'type');
+			const w = options.width;
+			const h = options.height;
+			const points = [
+				new Point(0, 0),
+				new Point(w, 0),
+				new Point(w, h),
+				new Point(0, h)
+			];
+			return new Polygon(points, options);
+		}
+	},
+	ellipse:{
+		path:shape => {},
+		circle:shape => {
+			const options = omit(shape.toObject(), 'version', 'type', 'rx', 'ry');
+			options.radius = shape.rx;
+			return new Circle(options);
+		}
+	},
+	circle:{
+		path:shape => {},
+		ellipse:shape => {
+			const options = omit(shape.toObject(), 'version', 'type', 'radius');
+			options.rx = shape.radius;
+			options.ry = shape.radius;
+			return new Ellipse(options);
+		}
+	},
+	text:{
+		path:shape => {}
+	},
+	path:{
+		polyline:shape => {
+			const options = omit(shape.toObject(), 'version', 'type', 'path');
+			const points = shape.path.map(c => {
+				const x = c[c.length - 2];
+				const y = c[c.length - 1];
+				return new Point(x, y);
+			});
+			return new Polyline(points, options);
+		}
+	},
+	polyline:{
+		path:shape => {},
+		polygon:shape => {
+			const options = omit(shape.toObject(), 'version', 'type', 'points');
+			return new Polygon(shape.points, options);
+		}
+	},
+	polygon:{
+		path:shape => {},
+		polyline:shape => {
+			const options = omit(shape.toObject(), 'version', 'type', 'points');
+			return new Polyline(shape.points, options);
+		}
+	}
 };
 
 /**
@@ -638,12 +552,6 @@ export function parseGradient(gradient = ''){
 	if (!isString(gradient)){
 		return new Gradient();
 	}
-	if (!parseGradient.cache){
-		parseGradient.cache = {};
-	}
-	if (parseGradient.cache[gradient]){
-		return parseGradient.cache[gradient];
-	}
 	const datas = gradient.split(';');
 	if (datas[0] !== 'GRADIENT'){
 		return new Gradient();
@@ -659,12 +567,11 @@ export function parseGradient(gradient = ''){
 			offset:parseFloat(_data[1])
 		};
 	});
-	parseGradient.cache[gradient] = new Gradient({
+	return new Gradient({
 		type,
 		angle,
 		colorStops
 	});
-	return parseGradient.cache[gradient];
 }
 
 /**

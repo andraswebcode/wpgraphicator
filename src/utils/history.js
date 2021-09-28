@@ -4,7 +4,9 @@ import {
 import {
 	debounce,
 	clone,
-	each
+	each,
+	isArray,
+	extend
 } from 'underscore';
 import fabric from 'fabric';
 
@@ -98,6 +100,9 @@ export default class {
 		const action = current.get('action');
 		const shapeModel = this.shapes.get(modelState?.id);
 		const shapeObject = this.scene.getObjectById(modelState?.id);
+		if (this.scene.getActiveObject()?.type === 'activeSelection'){
+			this.scene.discardActiveObject();
+		}
 		switch (action){
 			case 'add':
 			if (redo){
@@ -118,29 +123,14 @@ export default class {
 			}
 			break;
 			case 'change':
-			if (shapeModel){
-				// Needs remove properties to rerender views.
-				shapeModel.set('properties', []);
-				shapeModel._properties.set([]);
-				shapeModel.set(modelState);
-			}
-			if (shapeObject){
-				// Replace value with fabric.Gradient() if it is a gradient.
-				if (shapeState?.fill?.colorStops){
-					shapeState.fill = new Gradient(shapeState.fill);
-				}
-				if (shapeState?.stroke?.colorStops){
-					shapeState.stroke = new Gradient(shapeState.stroke);
-				}
-				shapeObject.set(shapeState);
-				if (shapeObject.controls.p0){ // Check if is path, or polyline drawing mode.
-					shapeObject._createPathControls?.(false, true);
-					shapeObject._createPolylineControls?.(false, true);
-				}
-				this.scene.requestRenderAll();
-			}
+			this.__changeShape(modelState, shapeState, shapeModel, shapeObject);
 			break;
 			case 'bulk:change':
+			each(modelState, (ms, i) => {
+				const model = this.shapes.get(ms?.id);
+				const object = this.scene.getObjectById(ms?.id);
+				this.__changeShape(ms, shapeState[i], model, object);
+			});
 			break;
 			case 'remove':
 			if (redo){
@@ -157,6 +147,38 @@ export default class {
 				each(modelState, (ms, i) => this.__remakeRemovedShape(ms, shapeState[i]));
 			}
 			break;
+			case 'replace':
+			if (
+				shapeState.from?.type === 'group' ||
+				shapeState.to?.type === 'group' ||
+				shapeState.from?.type === 'activeSelection' ||
+				shapeState.to?.type === 'activeSelection'
+			){ // In case of group, ungroup.
+				if (redo){
+					// Do something...
+				} else {
+					if (shapeState.from?.type === 'activeSelection'){
+						this.shapes.remove(this.shapes.get(modelState.to?.id));
+						this.scene.remove(this.scene.getObjectById(shapeState.to?.id));
+						each(shapeState.from.objects, (o, i) => this.__remakeRemovedShape(modelState.from[i], o));
+					} else if (shapeState.from?.type === 'group'){
+						each(modelState.to, m => {
+							this.shapes.remove(this.shapes.get(m.id));
+							this.scene.remove(this.scene.getObjectById(m.id));
+						});
+						this.__remakeRemovedShape(modelState.from, shapeState.from);
+					}
+				}
+			} else { // In case of a single shape replacement.
+				if (redo){
+					// Do something...
+				} else {
+					this.shapes.remove(this.shapes.get(modelState.to?.id));
+					this.scene.remove(this.scene.getObjectById(shapeState.to?.id));
+					this.__remakeRemovedShape(modelState.from, shapeState.from);
+				}
+			}
+			break;
 			default:
 			break;
 		}
@@ -169,7 +191,7 @@ export default class {
 	 * @since 1.0.0
 	 * @access private
 	 * @param {object|array} shapeModel
-	 * @param {string} action Add, change, or remove.
+	 * @param {string} action Add, change, remove, or replace.
 	 * @param {object|array} shape
 	 */
 
@@ -180,24 +202,93 @@ export default class {
 				this.stack.reset(this.stack.slice(0, this.index + 1));
 			}
 			if (bulkAction){ // In case of bulk action.
-				const models = shapeModel.map(model => clone(model._prevState));
-				const shapes = shape.map(obj => clone(obj._stateProperties));
+				const models = shapeModel.map(model => {
+					const prevState = clone(model._prevState);
+					model._prevState = model.toJSON();
+					return prevState;
+				});
+				const shapes = shape.map(obj => obj?.type === 'group' ? extend({
+					objects:obj._objects.map(o => o.toJSON())
+				}, clone(obj._stateProperties)) : clone(obj._stateProperties));
 				this.stack.add({
 					model:models,
 					shape:shapes,
+					action
+				});
+			} else if (action === 'replace'){ // In case of replace shapes.
+				// Models
+				const fromModel = isArray(shapeModel?.from) ? shapeModel?.from.map(model => {
+					const prevState = clone(model._prevState);
+					model._prevState = model.toJSON();
+					return prevState;
+				}) : clone(shapeModel?.from._prevState);
+				const toModel = isArray(shapeModel?.to) ? shapeModel?.to.map(model => {
+					const prevState = clone(model._prevState);
+					model._prevState = model.toJSON();
+					return prevState;
+				}) : clone(shapeModel?.to._prevState);
+				// Shapes
+				const fromShape = isArray(shape?.from) ? {
+					type:'activeSelection',
+					objects:shape?.from.map(o => {
+						const obj = extend({
+							id:o.id,
+							type:o.type
+						}, clone(o._stateProperties));
+						if (o._objects){
+							obj.objects = o._objects.map(s => s.toJSON());
+						}
+						return obj;
+					})
+				} :
+				shape?.from._objects ? extend({
+					id:shape?.from.id,
+					type:'group',
+					objects:shape?.from._objects.map(o => o.toJSON(['id']))
+				}, clone(shape?.from._stateProperties)) : extend({
+					id:shape?.from.id,
+					type:shape?.from.type
+				}, clone(shape?.from._stateProperties));
+				const toShape = isArray(shape?.to) ? {
+					type:'activeSelection',
+					objects:shape?.to.map(o => extend({
+						id:o.id,
+						type:o.type
+					}, clone(o._stateProperties)))
+				} :
+				shape?.to._objects ? extend({
+					id:shape?.to.id,
+					type:'group',
+					objects:shape?.to._objects.map(o => o.toJSON())
+				}, clone(shape?.to._stateProperties)) : extend({
+					id:shape?.to.id,
+					type:shape?.to.type
+				}, clone(shape?.to._stateProperties));
+				// Add
+				this.stack.add({
+					model:{
+						from:fromModel,
+						to:toModel
+					},
+					shape:{
+						from:fromShape,
+						to:toShape
+					},
 					action
 				});
 			} else { // In case of a single action.
 				shape = shape || this.scene.getObjectById(shapeModel.get('id'));
 				this.stack.add({
 					model:clone(shapeModel._prevState),
-					shape:clone(shape._stateProperties),
+					shape:shape?.type === 'group' ? extend({
+						objects:shape._objects.map(o => o.toJSON())
+					}, clone(shape._stateProperties)) : clone(shape._stateProperties),
 					action
 				});
 			}
 			this.index++;
 		}
-		if (!bulkAction){
+		if (!bulkAction && action !== 'replace'){
 			shapeModel._prevState = shapeModel.toJSON();
 		}
 	}
@@ -215,11 +306,52 @@ export default class {
 		const shapeClass = fabric[type === 'i-text' ? 'IText' : capitalize(type)];
 		if (shapeClass && shapeClass.fromObject){
 			shapeClass.fromObject(shapeState, newShape => {
+				// Debug positioning.
+				/* if (newShape.type === 'group'){
+					each(newShape._objects, obj => {
+						obj.top -= newShape.top;
+						obj.left -= newShape.left;
+					});
+				} */
 				newShape.id = modelState.id;
 				// There is no need to explicitly add shapeModel because it is added on scene's object added event.
 				this.scene.add(newShape);
 				this.shapes.get(newShape.id)?.set(modelState);
 			});
+		}
+	}
+
+	/**
+	 *
+	 * @since 1.2.0
+	 * @access private
+	 * @param {object} modelState
+	 * @param {object} shapeState
+	 * @param {object} shapeModel
+	 * @param {object} shapeObject
+	 */
+
+	__changeShape(modelState, shapeState, shapeModel, shapeObject){
+		if (shapeModel){
+			// Needs remove properties to rerender views.
+			shapeModel.set('properties', []);
+			shapeModel._properties.set([]);
+			shapeModel.set(modelState);
+		}
+		if (shapeObject){
+			// Replace value with fabric.Gradient() if it is a gradient.
+			if (shapeState?.fill?.colorStops){
+				shapeState.fill = new Gradient(shapeState.fill);
+			}
+			if (shapeState?.stroke?.colorStops){
+				shapeState.stroke = new Gradient(shapeState.stroke);
+			}
+			shapeObject.set(shapeState);
+			if (shapeObject.controls.p0){ // Check if is path, or polyline drawing mode.
+				shapeObject._createPathControls?.(false, true);
+				shapeObject._createPolylineControls?.(false, true);
+			}
+			this.scene.requestRenderAll();
 		}
 	}
 

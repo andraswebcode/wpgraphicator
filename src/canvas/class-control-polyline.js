@@ -1,12 +1,21 @@
 import {
 	Control,
+	controlsUtils,
 	util
 } from 'fabric';
+
+import {
+	ACTIVE_CORNER_COLOR
+} from './../utils/constants.js';
 
 const {
 	transformPoint,
 	multiplyTransformMatrices
 } = util;
+
+const {
+	renderSquareControl
+} = controlsUtils;
 
 /**
  * The polyline control class.
@@ -26,6 +35,25 @@ export default class extends Control {
 	constructor(options = {}){
 		super(options);
 		this.actionName = 'modifyPolyline';
+	}
+
+	/**
+	 * Render control.
+	 * @since 1.2.0
+	 * @param {object} ctx
+	 * @param {int} left
+	 * @param {int} top
+	 * @param {object} styleOverride
+	 * @param {object} fabricObject
+	 */
+
+	render(ctx, left, top, styleOverride, fabricObject){
+		if (fabricObject._currentPolylineControl === this){
+			styleOverride.cornerColor = ACTIVE_CORNER_COLOR;
+		} else {
+			styleOverride.cornerColor = fabricObject.cornerColor;
+		}
+		renderSquareControl.call(this, ctx, left, top, styleOverride, fabricObject);
 	}
 
 	/**

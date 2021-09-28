@@ -36,8 +36,8 @@ export default Collection.extend(/** @lends Shapes.prototype */{
 	 */
 
 	initialize(){
-		this._zIndex = 0;
-		this.on('add', () => this._zIndex++);
+		// this._zIndex = 0;
+		// this.on('add', () => this._zIndex++);
 	}
 
 });

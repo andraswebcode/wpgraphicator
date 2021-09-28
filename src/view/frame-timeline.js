@@ -1,4 +1,10 @@
 import $ from 'jquery';
+import {
+	min,
+	each,
+	uniq,
+	isArray
+} from 'underscore';
 
 import Frame from './frame.js';
 import TimelineTimeslider from './subview-timeline-timeslider.js';
@@ -78,7 +84,7 @@ export default Frame.extend(/** @lends Timeline.prototype */{
 		this._setTimer(this.state, this.getState('currentTime'));
 		this.listenTo(this.state, 'change:currentTime change:secondWidth change:timelineLeft', this._moveCurrentTime);
 		this.listenTo(this.state, 'change:currentTime', this._setTimer);
-		this.listenTo(this.state, 'change:isPlaying', this._changePlayButtonIcon);
+		this.listenTo(this.state, 'change:isPlaying', this._onChangeIsPlaying);
 		this.$document.on('keydown', this._onDocumentKeyDown.bind(this));
 	},
 
@@ -241,12 +247,21 @@ export default Frame.extend(/** @lends Timeline.prototype */{
 	 * @param {boolean} isPlaying
 	 */
 
-	_changePlayButtonIcon(state, isPlaying){
+	_onChangeIsPlaying(state, isPlaying){
+		// Change play button icon.
 		const btn = this.$('.wpg-timeline-topbar-play-button').find('.fas');
 		if (isPlaying){
 			btn.removeClass('fa-play').addClass('fa-pause');
 		} else {
 			btn.removeClass('fa-pause').addClass('fa-play');
+		}
+		// Some debug.
+		if (isPlaying){
+			if (this.scene.getActiveObject()?.type === 'activeSelection'){
+				this.scene.discardActiveObject();
+			}
+		} else {
+			this.scene.forEachObject(obj => obj.setCoords());
 		}
 	},
 
@@ -270,19 +285,43 @@ export default Frame.extend(/** @lends Timeline.prototype */{
 		}
 		const shapeId = activeShape.id;
 		const shapeModel = this.shapes.get(shapeId);
+		const activeTrackPoints = this.getState('activeTrackPoints');
+		const currentTime = this.getState('currentTime');
 		this.clipboard.paste(model => {
-			const transitionModel = model.clone();
-			const property = model.get('property');
-			const propModel = shapeModel._properties.get(property) || shapeModel._properties.add({
-				id:property,
-				shapeId
-			});
-			transitionModel.set({
-				shapeId,
-				second:this.getState('currentTime')
-			});
-			propModel._transitions.add(transitionModel);
-			propModel._transitions.sort();
+			if (isArray(model)){
+				const shapeIds = uniq(model.map(m => m.get('shapeId')));
+				const selectedShapes = this.getState('selectedShapeIds') || [];
+				const minSec = min(model, m => m.get('second'))?.get('second');
+				each(model, model => {
+					const transitionModel = model.clone();
+					const property = model.get('property');
+					const second = model.get('second');
+					const shapeId = (shapeIds.length === 1 && selectedShapes.length === 1) ? selectedShapes[0] : model.get('shapeId');
+					const shapeModel = this.shapes.get(shapeId);
+					const propModel = shapeModel._properties.get(property) || shapeModel._properties.add({
+						id:property,
+						shapeId
+					});
+					transitionModel.set({
+						shapeId,
+						second:second - minSec + currentTime
+					});
+					propModel._transitions.add(transitionModel);
+				});
+			} else {
+				const transitionModel = model.clone();
+				const property = model.get('property');
+				const propModel = shapeModel._properties.get(property) || shapeModel._properties.add({
+					id:property,
+					shapeId
+				});
+				transitionModel.set({
+					shapeId,
+					second:this.getState('currentTime')
+				});
+				propModel._transitions.add(transitionModel);
+				propModel._transitions.sort();
+			}
 		}, 'transition');
 	},
 

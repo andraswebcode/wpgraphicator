@@ -30,7 +30,7 @@ export default util.createClass(Canvas, /** @lends Scene.prototype */{
 	 * @var {boolean}
 	 */
 
-	selection:false,
+	selection:true,
 
 	/**
 	 *
@@ -39,6 +39,14 @@ export default util.createClass(Canvas, /** @lends Scene.prototype */{
 	 */
 
 	selectionKey:'ctrlKey',
+
+	/**
+	 *
+	 * @since 1.2.0
+	 * @var {string}
+	 */
+
+	uniScaleKey:'ctrlKey',
 
 	/**
 	 *

@@ -1,8 +1,12 @@
 import $ from 'jquery';
 import {
 	contains,
-	throttle
+	throttle,
+	without
 } from 'underscore';
+import {
+	ActiveSelection
+} from 'fabric';
 
 import Subview from './subview.js';
 import TimelineSidebarTrack from './subview-timeline-sidebar-track.js';
@@ -171,12 +175,26 @@ export default Subview.extend(/** @lends TimelineShape.prototype */{
 	 */
 
 	_setActiveShape(e){
-		if ($(e.target).is('.wpg-timeline-shape__process-bar-strip')){
-			return;
-		}
 		const id = this.model.get('id');
-		const shape = this.scene.getObjectById(id);
-		this.scene.setActiveObject(shape).requestRenderAll();
+		const shapeIds = this.getState('selectedShapeIds') || [];
+		const ctrlKey = (e.ctrlKey || e.metaKey);
+		if (ctrlKey && shapeIds.length && shapeIds[0]){
+			const newShape = this.scene.getObjectById(id);
+			this.scene.discardActiveObject();
+			let objects = shapeIds.map(id => this.scene.getObjectById(id));
+			if (contains(shapeIds, id)){
+				objects = without(objects, newShape);
+			} else {
+				objects.push(newShape);
+			}
+			const activeSelection = new ActiveSelection(objects, {
+				canvas:this.scene
+			});
+			this.scene.setActiveObject(activeSelection).requestRenderAll();
+		} else {
+			const shape = this.scene.getObjectById(id);
+			this.scene.setActiveObject(shape).requestRenderAll();
+		}
 		this.setState('activeTool', 'select-mode');
 	},
 

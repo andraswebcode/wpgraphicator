@@ -126,10 +126,15 @@ class SubviewManager {
 
 	_addView({view, name}){
 		return model => {
-			this.views[name].push(new view(extend({
+			const views = new view(extend({
 				model
-			}, this.viewOptions)));
-			this.render(name);
+			}, this.viewOptions));
+			this.views[name].push(views);
+			//this.render(name);
+			const wrapper = this.$('.wpg-subview__' + name);
+			views.undelegateEvents();
+			views.render().$el.appendTo(wrapper);
+			views.delegateEvents();
 		};
 	}
 
@@ -160,9 +165,11 @@ class SubviewManager {
 	 */
 
 	_sortViews({name}){
-		return collection => {
+		return (collection, {add}) => {
 			this.views[name] = sortBy(this.views[name], view => view.model.get(collection.comparator));
-			this.render(name);
+			if (!add){
+				this.render(name);
+			}
 		};
 	}
 

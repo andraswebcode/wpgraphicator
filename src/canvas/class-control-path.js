@@ -9,6 +9,10 @@ import {
 	toFixed
 } from './../utils/utils.js';
 
+import {
+	ACTIVE_CORNER_COLOR
+} from './../utils/constants.js';
+
 const {
 	transformPoint,
 	multiplyTransformMatrices
@@ -50,6 +54,11 @@ export default class extends Control {
 	 */
 
 	render(ctx, left, top, styleOverride, fabricObject){
+		if (fabricObject._currentPathControl === this && this.type === 'p'){
+			styleOverride.cornerColor = ACTIVE_CORNER_COLOR;
+		} else {
+			styleOverride.cornerColor = fabricObject.cornerColor;
+		}
 		if (this.type === 'p'){
 			renderSquareControl.call(this, ctx, left, top, styleOverride, fabricObject);
 		} else {

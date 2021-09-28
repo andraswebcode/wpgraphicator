@@ -5,14 +5,16 @@ import {
 	contains,
 	isArray,
 	isObject,
-	pick
+	pick,
+	each
 } from 'underscore';
 import {
 	i18n,
 	media
 } from 'wordpress';
 import {
-	Gradient
+	Gradient,
+	util
 } from 'fabric';
 
 import Subview from './subview.js';
@@ -23,7 +25,6 @@ import {
 	toFixed,
 	serializePath,
 	serializePoints,
-	pickDifference,
 	serializeGradient
 } from './../utils/utils.js';
 import {
@@ -35,6 +36,9 @@ import {
 const {
 	__
 } = i18n;
+const {
+	qrDecompose
+} = util;
 
 /**
  * Settings shape subview.
@@ -187,8 +191,7 @@ export default Subview.extend(/** @lends SettingsShape.prototype */{
 	 */
 
 	_getSelectedShape(){
-		const ids = this.getState('selectedShapeIds') || [];
-		return this.scene.getObjectById(ids[0]) || {};
+		return this.scene.getActiveObject() || {};
 	},
 
 	/**
@@ -205,6 +208,21 @@ export default Subview.extend(/** @lends SettingsShape.prototype */{
 
 	/**
 	 *
+	 * @since 1.2.0
+	 * @access private
+	 * @return {array} An array of backbone models.
+	 */
+
+	_getSelectedShapeModels(){
+		const ids = this.getState('selectedShapeIds') || [];
+		if (!ids.length || !ids[0]){
+			return [];
+		}
+		return ids.map(id => this.shapes.get(id));
+	},
+
+	/**
+	 *
 	 * @since 1.0.0
 	 * @access private
 	 * @param {string} property
@@ -212,20 +230,37 @@ export default Subview.extend(/** @lends SettingsShape.prototype */{
 	 */
 
 	_setPropertyWithPlugin(property, value){
-		const shapeModel = this._getSelectedShapeModel();
-		if (!shapeModel){
-			return;
-		}
 		const shape = this._getSelectedShape();
-		shape.saveState();
-		this.__updateProperty(shapeModel, property, value);
-		if (replaceCollidedParams[property]){
-			shape.set(property, replaceCollidedParams[property](value));
+		if (shape?.type === 'activeSelection'){
+			const models = this._getSelectedShapeModels();
+			each(models, model => {
+				const shape = this.scene.getObjectById(model.get('id'));
+				if (!shape){
+					return;
+				}
+				this.__updateProperty(model, property, value);
+				if (replaceCollidedParams[property]){
+					shape.set(property, replaceCollidedParams[property](value));
+				} else {
+					shape.set(property, value);
+				}
+			});
+			this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:change', shape._objects);
 		} else {
-			shape.set(property, value);
+			const shapeModel = this._getSelectedShapeModel();
+			if (!shapeModel){
+				return;
+			}
+			shape.saveState();
+			this.__updateProperty(shapeModel, property, value);
+			if (replaceCollidedParams[property]){
+				shape.set(property, replaceCollidedParams[property](value));
+			} else {
+				shape.set(property, value);
+			}
+			shapeModel.trigger('wpg:pushtohistorystack', shapeModel, 'change', shape);
 		}
 		this.scene.requestRenderAll();
-		shapeModel.trigger('wpg:pushtohistorystack', shapeModel, 'change', shape);
 	},
 
 	/**
@@ -236,17 +271,35 @@ export default Subview.extend(/** @lends SettingsShape.prototype */{
 	 */
 
 	_setProperty(e){
-		const shapeModel = this._getSelectedShapeModel();
-		if (!shapeModel){
-			return;
-		}
 		const shape = this._getSelectedShape();
 		const input = $(e.target);
 		const property = input.data('property');
-		if (!property){
+		const value = parseFloat(input.val()) || 0;
+		if (shape?.type === 'activeSelection'){
+			const models = this._getSelectedShapeModels();
+			const isTranslating = (property === 'left' || property === 'top');
+			if (isTranslating){
+				shape.set(property, value);
+			}
+			each(shape._objects, object => {
+				const model = this.shapes.get(object.id);
+				this.__updateProperty(model, property, isTranslating ? shape[property] + object[property] : value);
+				if (!isTranslating){
+					if (replaceCollidedParams[property]){
+						object.set(property, replaceCollidedParams[property](value));
+					} else {
+						object.set(property, value);
+					}
+				}
+			});
+			this.scene.requestRenderAll();
+			this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:change', shape._objects);
 			return;
 		}
-		const value = parseFloat(input.val()) || 0;
+		const shapeModel = this._getSelectedShapeModel();
+		if (!shapeModel || !property){
+			return;
+		}
 		shape.saveState();
 		this.__updateProperty(shapeModel, property, value);
 		if (replaceCollidedParams[property]){
@@ -529,10 +582,47 @@ export default Subview.extend(/** @lends SettingsShape.prototype */{
 
 	_addToStream(e){
 		e.preventDefault();
-		const shape = this._getSelectedShape();
-		const shapeModel = this._getSelectedShapeModel();
 		const target = $(e.target);
 		const property = target.data('property') || target.parent().data('property');
+		const shape = this._getSelectedShape();
+		if (shape?.type === 'activeSelection'){
+			const shapeModels = this._getSelectedShapeModels();
+			each(shapeModels, model => {
+				const object = this.scene.getObjectById(model.get('id'));
+				if (!object){
+					return;
+				}
+				const matrix = object.calcTransformMatrix();
+				const transform = qrDecompose(matrix);
+				const {
+					translateX,
+					translateY
+				} = transform;
+				let value;
+				switch (property){
+					case 'left':
+					value = translateX;
+					break;
+					case 'top':
+					value = translateY;
+					break;
+					case 'angle':
+					case 'scaleX':
+					case 'scaleY':
+					case 'skewX':
+					case 'skewY':
+					value = transform[property];
+					break;
+					default:
+					value = object[property];
+					break;
+				}
+				this.__updateProperty(model, property, value, undefined, true);
+			});
+			this.shapes.trigger('wpg:pushtohistorystack', shapeModels, 'bulk:change', shape._objects);
+			return;
+		}
+		const shapeModel = this._getSelectedShapeModel();
 		let value;
 		switch (property){
 			case 'fill':
