@@ -16,6 +16,9 @@ import {
 	preventOverflow,
 	flip
 } from '@popperjs/core';
+import {
+	allow_upload
+} from 'wpgeditor';
 
 import Subview from './subview.js';
 import SquareBrush from './../canvas/class-brush-square.js';
@@ -67,74 +70,84 @@ export default Subview.extend(/** @lends ToolbarButtons.prototype */{
 	 */
 
 	templateParams(){
-		return {
-			buttons:[{
-				name:'select-mode',
-				title:__('Select Mode', 'wpgraphicator'),
-				icon:'fas fa-mouse-pointer'
-			},{
-				name:'free-draw',
-				title:__('Free Draw', 'wpgraphicator'),
-				icon:'fas fa-pen'
-			},{
-				name:'draw-square',
-				title:__('Draw Square', 'wpgraphicator'),
-				icon:'fas fa-square'
-			},{
-				name:'draw-ellipse',
-				title:__('Draw Ellipse', 'wpgraphicator'),
-				icon:'fas fa-circle'
-			},{
-				name:'add-text',
-				title:__('Add Text', 'wpgraphicator'),
-				icon:'fas fa-font'
-			},{
-				name:'draw-path',
-				title:__('Draw Path', 'wpgraphicator'),
-				icon:'fas fa-pen-nib'
-			},{
-				name:'draw-polyline',
-				title:__('Draw Polyline', 'wpgraphicator'),
-				icon:'fas fa-draw-polygon'
-			},{
-				name:'edit-path',
-				title:__('Edit Path', 'wpgraphicator'),
-				icon:'fas fa-bezier-curve'
-			},{
-				name:'draw-shape',
-				title:__('Draw Shape', 'wpgraphicator'),
-				icon:'fas fa-star'
-			},{
+
+		const buttons = [{
+			name:'select-mode',
+			title:__('Select Mode', 'wpgraphicator'),
+			icon:'fas fa-mouse-pointer'
+		},{
+			name:'free-draw',
+			title:__('Free Draw', 'wpgraphicator'),
+			icon:'fas fa-pen'
+		},{
+			name:'draw-square',
+			title:__('Draw Square', 'wpgraphicator'),
+			icon:'fas fa-square'
+		},{
+			name:'draw-ellipse',
+			title:__('Draw Ellipse', 'wpgraphicator'),
+			icon:'fas fa-circle'
+		},{
+			name:'add-text',
+			title:__('Add Text', 'wpgraphicator'),
+			icon:'fas fa-font'
+		},{
+			name:'draw-path',
+			title:__('Draw Path', 'wpgraphicator'),
+			icon:'fas fa-pen-nib'
+		},{
+			name:'draw-polyline',
+			title:__('Draw Polyline', 'wpgraphicator'),
+			icon:'fas fa-draw-polygon'
+		},{
+			name:'edit-path',
+			title:__('Edit Path', 'wpgraphicator'),
+			icon:'fas fa-bezier-curve'
+		},{
+			name:'draw-shape',
+			title:__('Draw Shape', 'wpgraphicator'),
+			icon:'fas fa-star'
+		}];
+
+		if (allow_upload){
+			buttons.push({
 				name:'add-image',
 				title:__('Add Image', 'wpgraphicator'),
 				icon:'fas fa-image'
-			},{
-				name:'stroke-color',
-				title:__('Active Stroke Color', 'wpgraphicator'),
-				icon:'fas fa-tint'
-			},{
-				name:'fill-color',
-				title:__('Active Fill Color', 'wpgraphicator'),
-				icon:'fas fa-fill-drip'
-			},{
-				name:'stroke-width',
-				title:__('Active Stroke Width', 'wpgraphicator'),
-				icon:'fas fa-minus'
-			},{
-				name:'zoom-in',
-				title:__('Zoom In', 'wpgraphicator'),
-				icon:'fas fa-search-plus'
-			},{
-				name:'zoom-out',
-				title:__('Zoom Out', 'wpgraphicator'),
-				icon:'fas fa-search-minus'
-			}],
+			});
+		}
+
+		buttons.push({
+			name:'stroke-color',
+			title:__('Active Stroke Color', 'wpgraphicator'),
+			icon:'fas fa-tint'
+		},{
+			name:'fill-color',
+			title:__('Active Fill Color', 'wpgraphicator'),
+			icon:'fas fa-fill-drip'
+		},{
+			name:'stroke-width',
+			title:__('Active Stroke Width', 'wpgraphicator'),
+			icon:'fas fa-minus'
+		},{
+			name:'zoom-in',
+			title:__('Zoom In', 'wpgraphicator'),
+			icon:'fas fa-search-plus'
+		},{
+			name:'zoom-out',
+			title:__('Zoom Out', 'wpgraphicator'),
+			icon:'fas fa-search-minus'
+		});
+
+		return {
+			buttons,
 			shapeLibrary,
 			getDisabled:this._getDisabled.bind(this),
 			needsColorPopup:this._needsColorPopup.bind(this),
 			needsSliderPopup:this._needsSliderPopup.bind(this),
 			needsShapesPopup:this._needsShapesPopup.bind(this)
 		};
+
 	},
 
 	/**
@@ -348,6 +361,9 @@ export default Subview.extend(/** @lends ToolbarButtons.prototype */{
 			this.__prevActiveTool = this.state.previous('activeTool');
 			break;
 			case 'add-image':
+			if (!allow_upload){
+				break;
+			}
 			if (!this.__mediaFrame){
 				this.__mediaFrame = media({
 					multiple:false,

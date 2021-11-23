@@ -19,6 +19,7 @@ import {
 } from 'underscore';
 import {
 	project_id,
+	user_id,
 	url
 } from 'wpgeditor';
 
@@ -64,7 +65,7 @@ export default Base.extend(/** @lends Editor.prototype */{
 	/**
 	 *
 	 * @since 1.0.0
-	 * @var {object}
+	 * @var {string}
 	 */
 
 	el:'#wpg-editor',
@@ -140,13 +141,18 @@ export default Base.extend(/** @lends Editor.prototype */{
 
 	_fetchProject(){
 		const id = parseInt(project_id) || 0;
+		const author = parseInt(user_id) || 0;
 		if (id){
 			this.project
 			.set('id', id)
 			.fetch({
-				success:() => {
-					this._loadProject();
-					this._hidePreloader();
+				success:project => {
+					if (author && author !== parseInt(project.get('author'))){
+						window.location.replace(new_project);
+					} else {
+						this._loadProject();
+						this._hidePreloader();
+					}
 				},
 				error:(model, response) => {
 					console.error(response);

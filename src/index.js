@@ -13,6 +13,7 @@ import './canvas/extend-image.js';
 import './canvas/extend-group.js';
 import './canvas/extend-active-selection.js';
 import './utils/jquery-plugins.js';
+import './utils/animation-exporter.js';
 import wpgEditor from 'wpgeditor';
 import Editor from './view/editor.js';
 import {

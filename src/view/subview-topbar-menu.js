@@ -12,7 +12,8 @@ import {
 	without,
 	min,
 	uniq,
-	isArray
+	isArray,
+	uniqueId
 } from 'underscore';
 import {
 	i18n,
@@ -33,6 +34,10 @@ import {
 	easings,
 	countShapesInSVGString
 } from './../utils/utils.js';
+import {
+	getSVGStringWithCSSAnimation,
+	getSVGStringWithSMILAnimation
+} from './../utils/animation-exporter.js';
 import {
 	keyboardShortcuts
 } from './../utils/keyboard-shortcuts.js';
@@ -83,7 +88,7 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 	name:'topbar-menu',
 
 	/**
-	 * The name of the view.
+	 *
 	 * @since 1.0.0
 	 * @access private
 	 * @var {number}
@@ -116,8 +121,13 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 					name:'save-as',
 					title:__('Save as', 'wpgraphicator')
 				},{
+					name:'divider'
+				},{
 					name:'export-json',
 					title:__('Export as JSON', 'wpgraphicator')
+				},{
+					name:'export-svg',
+					title:__('Export SVG', 'wpgraphicator')
 				},{
 					name:'divider'
 				},{
@@ -234,6 +244,7 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 		'click .wpg-popup__backdrop':'_closeDopdown',
 		'click .wpg-topbar-menu__dropdown-item-button':'_doAction',
 		'click .wpg-topbar-menu__modal-save-as-button':'_saveProjectAs',
+		'click .wpg-topbar-menu__modal-export-svg-download-button':'_exportAndDownloadSVG',
 		'click .wpg-topbar-menu__modal-svg-import-file-button':'_importSVGFile',
 		'click .wpg-topbar-menu__modal-svg-import-ok-button':'_parseSVGFile',
 		'click .wpg-topbar-menu__modal-svg-import-cancel-button':'_closeDopdown',
@@ -340,6 +351,9 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 				download:fileName
 			});
 			this.__exportJSONElement[0].click();
+			break;
+			case 'export-svg':
+			this.setState('topbarMenuShowModal', 'export-svg');
 			break;
 			case 'import-svg':
 			this.setState('topbarMenuShowModal', 'import-svg');
@@ -578,6 +592,55 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 
 	/**
 	 *
+	 * @since 1.3.0
+	 * @access private
+	 * @param {object} e Event.
+	 */
+
+	_exportAndDownloadSVG(e){
+
+		e.preventDefault();
+
+		const svgString = this._getProjectSvg();
+		const animation = this.shapes.toJSON();
+		const type = this.$('.wpg-topbar-menu__modal-export-svg-anim-type-select').val();
+		const fileName = this.$('.wpg-topbar-menu__modal-export-svg-file-name-input').val();
+		const repeat = this.$('.wpg-topbar-menu__modal-export-svg-repeat-select').val() || 1;
+		const preserveAspectRatio = this.$('.wpg-topbar-menu__modal-export-svg-par-select').val();
+		const totalDuration = this.getState('totalDuration');
+		const defFileName = (this.getState('projectName') || '').replace(/\s/g, '-').toLowerCase();
+		let link = 'data:image/svg+xml;base64,';
+
+		if (type === 'smil'){
+			link += btoa(getSVGStringWithSMILAnimation(svgString, animation, {
+				repeat,
+				preserveAspectRatio,
+				totalDuration,
+				version
+			}));
+		} else {
+			link += btoa(getSVGStringWithCSSAnimation(svgString, animation, {
+				repeat,
+				preserveAspectRatio,
+				totalDuration,
+				version
+			}));
+		}
+
+		if (!this.__anchorElement){
+			this.__anchorElement = $('<a></a>').appendTo('body');
+		}
+
+		this.__anchorElement.attr({
+			href:link,
+			download:(fileName || defFileName || 'wpgraphicator') + '.svg'
+		});
+		this.__anchorElement[0].click();
+
+	},
+
+	/**
+	 *
 	 * @since 1.1.0
 	 * @access private
 	 * @param {object} e Event.
@@ -676,7 +739,7 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 		fabric.Object.prototype.fill = '#000000';
 		setTimeout(() => {
 			try {
-				loadSVGFromString(this.__importedSVGString, (shapes, options) => {
+				loadSVGFromString(this.__importedSVGString, (shapes, options, elements, allElements) => {
 					if (resetCanvas){
 						this.scene.forEachObject(shape => this.scene.remove(shape), this);
 						this.setState({
@@ -690,11 +753,40 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 						this.scene.add(group);
 						console.timeEnd('SVG Loaded');
 					} else {
+						const _shapes = {};
+						const _shapesToHistory = [];
 						console.time('SVG Loaded');
-						each(shapes, shape => this.scene.add(shape));
+						each(allElements, el => {
+							$(el).data('svgid', uniqueId('svgid__'));
+						});
+						each(shapes, (shape, i) => {
+							let elem = $(elements[i]);
+							// Find the first group ancessor.
+							while (elem.parent().prop('tagName') === 'g'){
+								elem = elem.parent();
+							}
+							if (elem.prop('tagName') === 'g'){
+								if (!_shapes[elem.data('svgid')]){
+									_shapes[elem.data('svgid')] = [];
+								}
+								_shapes[elem.data('svgid')].push(shape);
+							} else {
+								_shapes[elem.data('svgid')] = shape;
+							}
+						});
+						each(_shapes, shape => {
+							if (isArray(shape)){ // In case of group.
+								const group = new Group(shape);
+								this.scene.add(group);
+								_shapesToHistory.push(group);
+							} else { // In case of a single shape.
+								this.scene.add(shape);
+								_shapesToHistory.push(shape);
+							}
+						});
 						console.timeEnd('SVG Loaded');
-						const models = shapes.map(({id}) => this.shapes.get(id));
-						this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:add', shapes);
+						const models = _shapesToHistory.map(({id}) => this.shapes.get(id));
+						this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:add', _shapesToHistory);
 					}
 					this._closeDopdown();
 					$('.wpg-topbar__loader').hide();
