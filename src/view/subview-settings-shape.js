@@ -14,6 +14,7 @@ import {
 } from 'wordpress';
 import {
 	Gradient,
+	Point,
 	util
 } from 'fabric';
 
@@ -25,7 +26,8 @@ import {
 	toFixed,
 	serializePath,
 	serializePoints,
-	serializeGradient
+	serializeGradient,
+	transformOrigins
 } from './../utils/utils.js';
 import {
 	COLOR_PICKER_WIDTH,
@@ -69,6 +71,8 @@ export default Subview.extend(/** @lends SettingsShape.prototype */{
 	events:{
 		'change .wpg-settings-shape__transform-input':'_setProperty',
 		'change .wpg-settings-shape__dimensions-input':'_setProperty',
+		'change .wpg-settings-shape__transform-origin-select':'_setTransformOrigin',
+		'change .wpg-settings-shape__transform-origin-input':'_setCustomTransformOrigin',
 		'change .wpg-settings-shape__stroke-dash-offset-input':'_setProperty',
 		'change .wpg-settings-shape__fill-type-select':'_setFillType',
 		'change .wpg-settings-shape__stroke-type-select':'_setStrokeType',
@@ -92,6 +96,7 @@ export default Subview.extend(/** @lends SettingsShape.prototype */{
 	templateParams(){
 		return {
 			getSelectedShape:this._getSelectedShape.bind(this),
+			transformOrigins,
 			webSafeFonts
 		};
 	},
@@ -320,6 +325,67 @@ export default Subview.extend(/** @lends SettingsShape.prototype */{
 			});
 		}
 		this.scene.requestRenderAll();
+		shapeModel.trigger('wpg:pushtohistorystack', shapeModel, 'change', shape);
+	},
+
+	/**
+	 *
+	 * @since 1.4.0
+	 * @access private
+	 * @param {object} e Event.
+	 */
+
+	_setTransformOrigin(e){
+		const shape = this._getSelectedShape();
+		const shapeModel = this._getSelectedShapeModel();
+		const select = $(e.target);
+		const value = select.val() || 'center center';
+		const origin = value.split(' ');
+		const startPos = new Point(0, 0).setFromPoint(shape.getCenterPoint());
+		shape.saveState();
+		shape.set({
+			originX:origin[0] === '0' ? 0 : (origin[0] || 'center'),
+			originY:origin[1] === '0' ? 0 : (origin[1] || 'center')
+		});
+		const endPos = new Point(0, 0).setFromPoint(shape.getCenterPoint());
+		const p = startPos.subtract(endPos);
+		shape.set({
+			left:shape.left + p.x,
+			top:shape.top + p.y
+		});
+		this.scene.requestRenderAll();
+		this.render();
+		this.$('.wpg-settings-shape__transform-origin-select').trigger('focus');
+		shapeModel.set('origin', value);
+		shapeModel.trigger('wpg:pushtohistorystack', shapeModel, 'change', shape);
+	},
+
+	/**
+	 *
+	 * @since 1.4.0
+	 * @access private
+	 * @param {object} e Event.
+	 */
+
+	_setCustomTransformOrigin(e){
+		const shape = this._getSelectedShape();
+		const shapeModel = this._getSelectedShapeModel();
+		const input = $(e.target);
+		const property = input.data('origin');
+		const value = parseFloat(input.val()) || 0;
+		const startPos = new Point(0, 0).setFromPoint(shape.getCenterPoint());
+		shape.saveState();
+		shape.set(property, value);
+		const endPos = new Point(0, 0).setFromPoint(shape.getCenterPoint());
+		const p = startPos.subtract(endPos);
+		shape.set({
+			left:shape.left + p.x,
+			top:shape.top + p.y
+		});
+		this.scene.requestRenderAll();
+		this.render();
+		this.$('.wpg-settings-shape__transform-origin-input[data-origin=' + property + ']').trigger('focus');
+		shapeModel.set('origin', `${shape.originX} ${shape.originY}`);
 		shapeModel.trigger('wpg:pushtohistorystack', shapeModel, 'change', shape);
 	},
 

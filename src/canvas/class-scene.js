@@ -25,7 +25,7 @@ import {
 export default util.createClass(Canvas, /** @lends Scene.prototype */{
 
 	/**
-	 * Disable multiselection.
+	 * Multiselection.
 	 * @since 1.0.0
 	 * @var {boolean}
 	 */
@@ -79,6 +79,15 @@ export default util.createClass(Canvas, /** @lends Scene.prototype */{
 	 */
 
 	skipOffscreen:false,
+
+	/**
+	 * Set it to true to also render controls
+	 * if there are outside the canvas.
+	 * @since 1.4.0
+	 * @var {boolean}
+	 */
+
+	controlsAboveOverlay:true,
 
 	/**
 	 *

@@ -45,7 +45,8 @@
 			&-translate,
 			&-scale,
 			&-skew,
-			&-rotate {
+			&-rotate,
+			&-origin-custom {
 				display: flex;
 				flex-wrap: wrap;
 				.wpg-input-wrapper {

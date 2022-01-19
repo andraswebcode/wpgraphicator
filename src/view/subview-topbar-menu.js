@@ -634,8 +634,8 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 		this.__anchorElement.attr({
 			href:link,
 			download:(fileName || defFileName || 'wpgraphicator') + '.svg'
-		});
-		this.__anchorElement[0].click();
+		});console.log(link);
+		// this.__anchorElement[0].click();
 
 	},
 

@@ -33,8 +33,10 @@ util.object.extend(Polyline.prototype, {
 		];
 	},
 	_getOffsetTransform(){
-		const x = - toFixed(this.pathOffset.x);
-		const y = - toFixed(this.pathOffset.y);
+		const {
+			x,
+			y
+		} = this._calcSVGTransformByOrigin();
 		return ` translate(${x}, ${y})`;
 	},
 	_adjustPoints(){

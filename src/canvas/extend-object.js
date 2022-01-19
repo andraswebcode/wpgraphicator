@@ -19,7 +19,8 @@ import {
 	DEFAULT_FILL_COLOR,
 	BORDER_COLOR,
 	CORNER_COLOR,
-	CORNER_SIZE
+	CORNER_SIZE,
+	BORDER_OPACITY_WHEN_MOVING
 } from './../utils/constants.js';
 import {
 	toFixed,
@@ -27,6 +28,7 @@ import {
 	separateColorOpacity,
 	stateProperties
 } from './../utils/utils.js';
+import OriginControl from './class-control-origin.js';
 
 util.object.extend(FabricObject.prototype, {
 	/**
@@ -52,6 +54,8 @@ util.object.extend(FabricObject.prototype, {
 			res[prop] = '';
 			return res;
 		}, {});
+		this.centeredScaling = !!(this.originX === 'center' && this.originY === 'center');
+		this.centeredRotation = !!(this.originX === 'center' && this.originY === 'center');
 	},
 	/**
 	 * Extend fabric.Object.prototype.moveTo()
@@ -126,6 +130,126 @@ util.object.extend(FabricObject.prototype, {
 		return toFixed(length);
 	},
 	/**
+	 * Useful for SVG exporter.
+	 * @return {object}
+	 * @since 1.4.0
+	 */
+	_calcSVGTransformByOrigin(){
+		const transform = {
+			x:0,
+			y:0
+		};
+		const {
+			width,
+			height,
+			originX,
+			originY,
+			strokeWidth
+		} = this;
+		const s2 = strokeWidth / 2;
+		const oX = parseFloat(originX) || 0;
+		const oY = parseFloat(originY) || 0;
+		switch (this.type){
+			case 'circle':
+			case 'ellipse':
+			case 'group':
+				// Horizontal
+				if (originX === 'left'){
+					transform.x = s2 + (width / 2);
+				} else if (originX === 'right'){
+					transform.x = - (width / 2) - s2;
+				} else if (originX === 'center'){
+					transform.x = 0;
+				} else {
+					transform.x = - (oX * (width + strokeWidth) - (width + strokeWidth) / 2);
+				}
+				// Vertical
+				if (originY === 'top'){
+					transform.y = s2 + (height / 2);
+				} else if (originY === 'bottom'){
+					transform.y = - (height / 2) - s2;
+				} else if (originY === 'center'){
+					transform.y = 0;
+				} else {
+					transform.y = - (oY * (height + strokeWidth) - (height + strokeWidth) / 2);
+				}
+			break;
+			case 'path':
+			case 'polyline':
+			case 'polygon':
+				const po = this.pathOffset;
+				const diffX = (this.width - po.x * 2) / 2;
+				const diffY = (this.height - po.y * 2) / 2;
+				// Horizontal
+				if (originX === 'left'){
+					transform.x = diffX + s2;
+				} else if (originX === 'right'){
+					transform.x = - po.x * 2 - diffX - s2;
+				} else if (originX === 'center'){
+					transform.x = - po.x;
+				} else {
+					transform.x = - ((po.x * 2) * oX) + s2 - strokeWidth * oX + (diffX * (0.5 - oX) * 2);
+				}
+				// Vertical
+				if (originY === 'top'){
+					transform.y = diffY + s2;
+				} else if (originY === 'bottom'){
+					transform.y = - po.y * 2 - diffY - s2;
+				} else if (originY === 'center'){
+					transform.y = - po.y;
+				} else {
+					transform.y = - ((po.y * 2) * oY) + s2 - strokeWidth * oY + (diffY * (0.5 - oY) * 2);
+				}
+			break;
+			case 'i-text':
+				const align = this.textAlign;
+				// Horizontal
+				if (originX === 'left'){
+					transform.x = (align === 'center') ? width / 2 : (align === 'right') ? width : 0;
+				} else if (originX === 'right'){
+					transform.x = (align === 'center') ? - (width / 2) : (align === 'right') ? 0 : - width;
+				} else if (originX === 'center'){
+					transform.x = (align === 'center') ? 0 : (align === 'right') ? width / 2 : - (width / 2);
+				} else {
+					transform.x = (align === 'center') ? width * (0.5 - oX) : (align === 'right') ? width * (1 - oX) : - (width * oX);
+				}
+				// Vertical
+				if (originY === 'top'){
+					transform.y = 0;
+				} else if (originY === 'bottom'){
+					transform.y = - height;
+				} else if (originY === 'center'){
+					transform.y = - (height / 2);
+				} else {
+					transform.y = - (height * oY);
+				}
+			break;
+			default:
+				// Horizontal
+				if (originX === 'left'){
+					transform.x = s2;
+				} else if (originX === 'right'){
+					transform.x = - s2 - width;
+				} else if (originX === 'center'){
+					transform.x = - (width / 2);
+				} else {
+					transform.x = - (oX * width) + s2 - strokeWidth * oX;
+				}
+				// Vertical
+				if (originY === 'top'){
+					transform.y = s2;
+				} else if (originY === 'bottom'){
+					transform.y = - s2 - height;
+				} else if (originY === 'center'){
+					transform.y = - (height / 2);
+				} else {
+					transform.y = - (oY * height) + s2 - strokeWidth * oY;
+				}
+			break;
+		}
+		return transform;
+	},
+	/**
 	 * Extend fabric.Object.prototype._createBaseSVGMarkup()
 	 * @since 1.0.0
 	 */
@@ -173,6 +297,25 @@ util.object.extend(FabricObject.prototype, {
 		return reviver ? reviver(markup.join('')) : markup.join('');
 	},
 	/**
+	 * Extend fabric.Object.prototype.getSvgTransform()
+	 * @since 1.0.0
+	 */
+	getSvgTransform(full, additionalTransform){
+		const originalTransform = full ? this.calcTransformMatrix() : this.calcOwnMatrix();
+		const transform = util.composeMatrix({
+			translateX:this.left,
+			translateY:this.top,
+			scaleX:this.scaleX,
+			scaleY:this.scaleY,
+			skewX:this.skewX,
+			skewY:this.skewY,
+			angle:this.angle
+		});
+		const needOriginal = !!(this.group && this.originX === 'center' && this.originY === 'center');
+		const svgTransform = 'transform="' + util.matrixToSVG(needOriginal ? originalTransform : transform);
+		return svgTransform + (additionalTransform || '') + '" ';
+	},
+	/**
 	 * Extend fabric.Object.prototype.getSvgCommons()
 	 * @since 1.0.0
 	 */
@@ -184,7 +327,9 @@ util.object.extend(FabricObject.prototype, {
 			scaleX,
 			scaleY,
 			skewX,
-			skewY
+			skewY,
+			originX,
+			originY
 		} = this;
 		const transform = {
 			top,
@@ -193,7 +338,9 @@ util.object.extend(FabricObject.prototype, {
 			scaleX,
 			scaleY,
 			skewX,
-			skewY
+			skewY,
+			originX,
+			originY
 		};
 		// Debug.
 		if (this.group){
@@ -255,6 +402,10 @@ util.object.extend(FabricObject.prototype, {
 				this.group.set('dirty', true);
 			}
 		}
+		if ((key === 'originX' || key === 'originY') && !this.group){
+			this.centeredScaling = !!(this.originX === 'center' && this.originY === 'center');
+			this.centeredRotation = !!(this.originX === 'center' && this.originY === 'center');
+		}
 		return this;
 	},
 	stateProperties,
@@ -273,5 +424,10 @@ util.object.extend(FabricObject.prototype, {
 	borderColor:BORDER_COLOR,
 	cornerColor:CORNER_COLOR,
 	cornerSize:CORNER_SIZE,
+	borderOpacityWhenMoving:BORDER_OPACITY_WHEN_MOVING,
 	transparentCorners:false
+});
+
+util.object.extend(FabricObject.prototype.controls, {
+	o:new OriginControl()
 });

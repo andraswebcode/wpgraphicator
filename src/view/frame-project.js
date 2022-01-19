@@ -125,8 +125,10 @@ export default Frame.extend(/** @lends Project.prototype */{
 		this.scene.on({
 			'mouse:wheel':this._onSceneMouseWheel.bind(this),
 			'mouse:move':this._onSceneMouseMove.bind(this),
+			'before:transform':this._onSceneBeforeTransform.bind(this),
 			'object:modified':this._onSceneObjectModified.bind(this),
 			'object:moving':this._onSceneObjectMoving.bind(this),
+			'object:scaling':this._onSceneObjectScaling.bind(this),
 			'object:morphing':this._onSceneObjectMorphing.bind(this),
 			'shape:created':this._onSceneShapeCreated.bind(this),
 			'object:added':this._onSceneObjectAdded.bind(this),
@@ -781,6 +783,35 @@ export default Frame.extend(/** @lends Project.prototype */{
 
 	/**
 	 *
+	 * @since 1.4.0
+	 * @access private
+	 * @param {object}
+	 */
+
+	_onSceneBeforeTransform({transform}){
+		const {
+			target
+		} = transform;
+		if (!this.__posOnSetOriginStart){
+			this.__posOnSetOriginStart = new Point(0, 0);
+		}
+		this.__posOnSetOriginStart.setFromPoint(target.getCenterPoint());
+		if (!this.__posOnScaling){
+			this.__posOnScaling = {
+				left:null,
+				top:null
+			};
+		}
+		if (this.__posOnScaling.left === null){
+			this.__posOnScaling.left = target.left;
+		}
+		if (this.__posOnScaling.top === null){
+			this.__posOnScaling.top = target.top;
+		}
+	},
+
+	/**
+	 *
 	 * @since 1.0.0
 	 * @access private
 	 * @param {object}
@@ -840,6 +871,20 @@ export default Frame.extend(/** @lends Project.prototype */{
 			left:Math.round(left / gridSize) * gridSize,
 			top:Math.round(top / gridSize) * gridSize
 		});
+	},
+
+	/**
+	 *
+	 * @since 1.4.0
+	 * @access private
+	 * @param {object}
+	 */
+
+	_onSceneObjectScaling({target}){
+		const isCentered = (target.originX === 'center' && target.originY === 'center');
+		if (!isCentered && this.__posOnScaling){
+			setTimeout(() => target.set(this.__posOnScaling), 0);
+		}
 	},
 
 	/**
@@ -1204,6 +1249,24 @@ export default Frame.extend(/** @lends Project.prototype */{
 			case 'skewY':
 			this.__updateProperty(shapeModel, 'skewY', toFixed(shape.skewY));
 			break;
+			case 'setOrigin':
+			shape.set({
+				originX:shape.__originX || shape.originX,
+				originY:shape.__originY || shape.originY
+			});
+			shape.__originX = null;
+			shape.__originY = null;
+			if (!this.__posOnSetOriginEnd){
+				this.__posOnSetOriginEnd = new Point(0, 0);
+			}
+			this.__posOnSetOriginEnd.setFromPoint(shape.getCenterPoint());
+			const p = this.__posOnSetOriginStart.subtract(this.__posOnSetOriginEnd);
+			shape.set({
+				left:shape.left + p.x,
+				top:shape.top + p.y
+			});
+			shapeModel.set('origin', `${shape.originX} ${shape.originY}`);
+			break;
 			case 'modifyPath':
 			this.__updateProperty(shapeModel, 'path', serializePath(shape.path));
 			if (this.getState('activeTool') !== 'draw-path'){
@@ -1219,6 +1282,10 @@ export default Frame.extend(/** @lends Project.prototype */{
 			default:
 			break;
 		}
+		if (this.__posOnScaling){
+			this.__posOnScaling.left = null;
+			this.__posOnScaling.top = null;
+		}
 	},
 
 	/**
@@ -1229,6 +1296,7 @@ export default Frame.extend(/** @lends Project.prototype */{
 	 * @param {string} property
 	 * @param {mixed} value
 	 * @param {float|int} time
+	 * @param {boolean} force
 	 */
 
 	__updateProperty(shapeModel, property, value, time, force){

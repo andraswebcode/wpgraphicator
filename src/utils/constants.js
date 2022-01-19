@@ -22,6 +22,7 @@ export const DEFAULT_STROKE_COLOR = '#000000';
 export const DEFAULT_FILL_COLOR = 'rgba(0,0,0,0)';
 
 export const TARGET_FIND_TOLERANCE = 20;
+export const TRANSFORM_ORIGIN_TOLERANCE = 10;
 export const BORDER_COLOR = '#bbbbff';
 export const CORNER_COLOR = '#bbbbff';
 export const ACTIVE_CORNER_COLOR = '#0000ff';
@@ -29,6 +30,7 @@ export const CORNER_SIZE = 8;
 export const SELECTION_COLOR = 'rgba(0, 0, 255, 0.2)';
 export const SELECTION_BORDER_COLOR = '#0000ff';
 export const ACTIVE_SELECTION_DASH_ARRAY = [10, 10];
+export const BORDER_OPACITY_WHEN_MOVING = 0.8;
 
 export const TEXT_CURSOR_COLOR = '#aaaaaa';
 

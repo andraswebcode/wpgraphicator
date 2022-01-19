@@ -14,7 +14,18 @@ util.object.extend(Group.prototype, {
 	 */
 	_toSVG(reviver){
 		const svgString = [];
+		const centered = !!(this.originX === 'center' && this.originY === 'center');
+		if (!centered){
+			const {
+				x,
+				y
+			} = this._calcSVGTransformByOrigin();
+			svgString.push(`\t<g transform="translate(${x}, ${y})">\n`);
+		}
 		each(this._objects, o => svgString.push('\t\t', o.toSVG(reviver)));
+		if (!centered){
+			svgString.push('\t</g>\n');
+		}
 		return svgString;
 	},
 	/**

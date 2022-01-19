@@ -163,6 +163,25 @@ export const easings = {
 };
 
 /**
+ * List of available transform origins.
+ * @since 1.4.0
+ * @var {object}
+ */
+
+export const transformOrigins = {
+	'0 0':__('Custom', 'wpgraphicator'),
+	'left top':__('Left Top', 'wpgraphicator'),
+	'center top':__('Center Top', 'wpgraphicator'),
+	'right top':__('Right Top', 'wpgraphicator'),
+	'left center':__('Left Center', 'wpgraphicator'),
+	'center center':__('Center Center', 'wpgraphicator'),
+	'right center':__('Right Center', 'wpgraphicator'),
+	'left bottom':__('Left Bottom', 'wpgraphicator'),
+	'center bottom':__('Center Bottom', 'wpgraphicator'),
+	'right bottom':__('Right Bottom', 'wpgraphicator')
+};
+
+/**
  * List of web safa fonts.
  * @since 1.0.0
  * @var {array}
@@ -225,6 +244,8 @@ export const stateProperties = [
 	'height',
 	'scaleX',
 	'scaleY',
+	'originX',
+	'originY',
 	'stroke',
 	'strokeWidth',
 	'strokeDashArray',

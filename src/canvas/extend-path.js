@@ -38,6 +38,17 @@ util.object.extend(Path.prototype, {
 			'/>\n'
 		];
 	},
+	/**
+	 * Extend fabric.Path.prototype._getOffsetTransform()
+	 * @since 1.4.0
+	 */
+	_getOffsetTransform(){
+		const {
+			x,
+			y
+		} = this._calcSVGTransformByOrigin();
+		return ` translate(${toFixed(x)}, ${toFixed(y)})`;
+	},
 	_adjustPath(){
 		const dim = this._calcDimensions();
 		const adjustPath = this.path.map(p => p.map((n, i) => {

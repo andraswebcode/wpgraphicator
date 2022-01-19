@@ -26,9 +26,11 @@ util.object.extend(IText.prototype, {
 	 * @since 1.0.0
 	 */
 	toSVG(reviver){
-		const offsetX = (this.textAlign === 'center') ? 0 : (this.textAlign === 'right') ? this.width / 2 : - (this.width / 2);
-		const offsetY = - (this.height / 2);
-		const additionalTransform = `translate(${toFixed(offsetX)} ${toFixed(offsetY)})`;
+		const {
+			x,
+			y
+		} = this._calcSVGTransformByOrigin();
+		const additionalTransform = `translate(${toFixed(x)} ${toFixed(y)})`;
 		return this._createBaseSVGMarkup(this._toSVG(), {
 			reviver,
 			noStyle:true,

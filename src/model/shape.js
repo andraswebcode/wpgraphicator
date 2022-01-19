@@ -32,6 +32,7 @@ export default Model.extend(/** @lends Shape.prototype */{
 		name:'',
 		start:0,
 		duration:0,
+		origin:'center center',
 		zIndex:0,
 		properties:[]
 	},

@@ -4,6 +4,7 @@ import './canvas/extend-shadow.js';
 import './canvas/extend-gradient.js';
 import './canvas/extend-object.js';
 import './canvas/extend-line.js';
+import './canvas/extend-rect.js';
 import './canvas/extend-ellipse.js';
 import './canvas/extend-circle.js';
 import './canvas/extend-path.js';
