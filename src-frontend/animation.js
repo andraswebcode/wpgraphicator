@@ -32,7 +32,7 @@ export const getKeyframes = shape => (shape.properties || []).reduce((result, pr
 	return result;
 }, {});
 
-export const update = (target, svgElement, shapeId, type) => {
+export const update = (target, svgElement, shapeId, type, origin) => {
 	const wrapper = svgElement.find(`.${shapeId}`);
 	const shape = wrapper.find(svgShapes);
 	const defMatrix = (wrapper.attr('transform') || '')
@@ -55,28 +55,14 @@ export const update = (target, svgElement, shapeId, type) => {
 		wrapper.attr('transform', `matrix(${matrix})`);
 		if (type === 'group'){
 			wrapper.attr({
-				...getShapeAttrs(target, type),
+				...getShapeAttrs(target, type, origin, shape),
 				...getShapeStyles(target)
 			});
 		} else {
 			shape.attr({
-				...getShapeAttrs(target, type),
+				...getShapeAttrs(target, type, origin, shape),
 				...getShapeStyles(target)
 			});
-		}
-		if (type === 'i-text' && target.fontSize){
-			if (shape.length && shape[0].getBBox){
-				const textAnchor = shape.attr('text-anchor');
-				const {
-					width = 1,
-					height = 1,
-					x = 0,
-					y = 0
-				} = shape[0].getBBox();
-				const offsetX = (textAnchor === 'middle') ? 0 : (textAnchor === 'end') ? width / 2 : - ((width + x) / 2);
-				const offsetY = - ((height + y) / 2);
-				shape.attr('transform', `translate(${offsetX} ${offsetY})`);
-			}
 		}
 		if (fillGradient && target.fill){
 			setGradient(fillGradient, target.fill);

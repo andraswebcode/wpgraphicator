@@ -39,7 +39,7 @@ export const config = (shapes = [], options = {}) => {
 			return result;
 		}, {});
 		keyframes.targets = targets[`tr_${id}`][shapeId];
-		const updateFn = update(targets[`tr_${id}`][shapeId], svgElement, shapeId, shape.type);
+		const updateFn = update(targets[`tr_${id}`][shapeId], svgElement, shapeId, shape.type, shape.origin);
 		keyframes.update = updateFn;
 		keyframes.complete = updateFn;
 		timelines[`tl_${id}`].add(keyframes, 0);
