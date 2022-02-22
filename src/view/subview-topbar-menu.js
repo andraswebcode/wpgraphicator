@@ -1,6 +1,7 @@
 import $ from 'jquery';
 import {
 	Group,
+	IText,
 	loadSVGFromString
 } from 'fabric';
 import {
@@ -23,7 +24,8 @@ import {
 	url,
 	version,
 	playing_modes,
-	preserve_aspect_ratio_values
+	preserve_aspect_ratio_values,
+	def_filename
 } from 'wpgeditor';
 
 import Subview from './subview.js';
@@ -345,7 +347,7 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 				transitions:this.shapes.toJSON()
 			};
 			const link = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(json));
-			const fileName = title ? title.toLowerCase().replace(/\s/g, '-') + '.json' : 'wpgraphicator.json';
+			const fileName = title ? title.toLowerCase().replace(/\s/g, '-') + '.json' : def_filename + '.json';
 			this.__exportJSONElement.attr({
 				href:link,
 				download:fileName
@@ -609,17 +611,17 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 		const preserveAspectRatio = this.$('.wpg-topbar-menu__modal-export-svg-par-select').val();
 		const totalDuration = this.getState('totalDuration');
 		const defFileName = (this.getState('projectName') || '').replace(/\s/g, '-').toLowerCase();
-		let link = 'data:image/svg+xml;base64,';
+		let link = 'data:image/svg+xml;charset=utf-8,';
 
 		if (type === 'smil'){
-			link += btoa(getSVGStringWithSMILAnimation(svgString, animation, {
+			link += encodeURIComponent(getSVGStringWithSMILAnimation(svgString, animation, {
 				repeat,
 				preserveAspectRatio,
 				totalDuration,
 				version
 			}));
 		} else {
-			link += btoa(getSVGStringWithCSSAnimation(svgString, animation, {
+			link += encodeURIComponent(getSVGStringWithCSSAnimation(svgString, animation, {
 				repeat,
 				preserveAspectRatio,
 				totalDuration,
@@ -633,9 +635,9 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 
 		this.__anchorElement.attr({
 			href:link,
-			download:(fileName || defFileName || 'wpgraphicator') + '.svg'
-		});console.log(link);
-		// this.__anchorElement[0].click();
+			download:(fileName || defFileName || def_filename) + '.svg'
+		});
+		this.__anchorElement[0].click();
 
 	},
 
@@ -761,6 +763,12 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 						});
 						each(shapes, (shape, i) => {
 							let elem = $(elements[i]);
+							// Replace text to i-text to be editable.
+							if (shape.type === 'text'){
+								const text = shape.text;
+								const options = omit(shape.toObject(), 'type');
+								shape = new IText(text, options);
+							}
 							// Find the first group ancessor.
 							while (elem.parent().prop('tagName') === 'g'){
 								elem = elem.parent();
@@ -776,7 +784,7 @@ export default Subview.extend(/** @lends TopbarMenu.prototype */{
 						});
 						each(_shapes, shape => {
 							if (isArray(shape)){ // In case of group.
-								const group = new Group(shape);
+								const group = shape.length === 1 ? shape[0] : new Group(shape);
 								this.scene.add(group);
 								_shapesToHistory.push(group);
 							} else { // In case of a single shape.

@@ -1,9 +1,6 @@
 import {
 	IText,
-	Text,
-	Object as FabricObject,
-	util,
-	parseAttributes
+	util
 } from 'fabric';
 
 import {

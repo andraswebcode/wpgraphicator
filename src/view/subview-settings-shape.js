@@ -6,6 +6,7 @@ import {
 	isArray,
 	isObject,
 	pick,
+	pluck,
 	each
 } from 'underscore';
 import {
@@ -23,6 +24,7 @@ import Project from './frame-project.js';
 import {
 	replaceCollidedParams,
 	webSafeFonts,
+	customFonts,
 	toFixed,
 	serializePath,
 	serializePoints,
@@ -97,7 +99,7 @@ export default Subview.extend(/** @lends SettingsShape.prototype */{
 		return {
 			getSelectedShape:this._getSelectedShape.bind(this),
 			transformOrigins,
-			webSafeFonts
+			webSafeFonts:webSafeFonts.concat(customFonts.length ? pluck(customFonts, 'family') : [])
 		};
 	},
 

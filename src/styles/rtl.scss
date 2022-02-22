@@ -1,0 +1,67 @@
+html[dir=rtl] .wpg {
+	&-select {
+		background: url($select-arrow-svg) no-repeat left 5px top 55% !important;
+	}
+	&-topbar-menu {
+		&__dropdown-items {
+			left: auto;
+			right: 0;
+		}
+	}
+	&-settings-shape {
+		&__add-to-stream-button {
+			left: $padding-sm;;
+			right: auto;
+		}
+	}
+	&-timeline {
+		&:after {
+			left: $padding + $scrollbar-width;
+			right: auto;
+		}
+		&__current-time-wrapper {
+			left: $padding;
+			right: auto;
+		}
+		&__current-time {
+			left: auto;
+			right: 0;
+			transform: translateX(50%);
+			&:after {
+				border-left: solid 2px $editor-color;
+				border-right: none;
+			}
+		}
+		&-timeslider {
+			left: auto;
+			right: 0;
+			&-second {
+				border-left: none;
+				border-right: solid 1px $editor-color;
+				& > span {
+					padding-left: 0;
+					padding-right: $timeline-number-padding;
+				}
+			}
+			&-deciseconds {
+				& > span:not(:last-child) {
+					border-left: solid 1px rgba($editor-color, 0.4);
+					border-right: none;
+				}
+			}
+		}
+		&-shape {
+			&__tracks {
+				&-inner {
+					left: auto;
+					right: 0;
+				}
+			}
+		}
+		&-track-point {
+			&-diamond {
+				transform: translate(50%, -50%) rotate(45deg);
+			}
+		}
+	}
+}

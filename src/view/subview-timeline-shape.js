@@ -7,6 +7,9 @@ import {
 import {
 	ActiveSelection
 } from 'fabric';
+import {
+	is_rtl
+} from 'wpgeditor';
 
 import Subview from './subview.js';
 import TimelineSidebarTrack from './subview-timeline-sidebar-track.js';
@@ -149,7 +152,7 @@ export default Subview.extend(/** @lends TimelineShape.prototype */{
 		const secondWidth = this.getState('secondWidth');
 		this.$('.wpg-timeline-shape__process-bar-strip').css({
 			width:duration * secondWidth,
-			left:start * secondWidth
+			[is_rtl ? 'right' : 'left']:start * secondWidth
 		});
 	},
 
@@ -236,7 +239,7 @@ export default Subview.extend(/** @lends TimelineShape.prototype */{
 			return;
 		}
 		const clientX = ('ontouchstart' in window) ? e.touches[0].clientX : e.clientX;
-		const distance = clientX - this.__startX;
+		const distance = is_rtl ? this.__startX - clientX : clientX - this.__startX;
 		const secondWidth = this.getState('secondWidth');
 		this.__setAllTransition(toFixed(distance / secondWidth));
 		this.__startX = clientX;
@@ -265,11 +268,11 @@ export default Subview.extend(/** @lends TimelineShape.prototype */{
 		switch (e.keyCode){
 			case 39: // Arrow right
 			e.preventDefault();
-			this.__setAllTransition(0.01);
+			this.__setAllTransition(is_rtl ? -0.01 : 0.01);
 			break;
 			case 37: // Arrow left
 			e.preventDefault();
-			this.__setAllTransition(-0.01);
+			this.__setAllTransition(is_rtl ? 0.01 : -0.01);
 			break;
 			case 38: // Arrow up
 			e.preventDefault();

@@ -1,6 +1,12 @@
+import $ from 'jquery';
+import {
+	is_rtl
+} from 'wpgeditor';
+
 import Subview from './subview.js';
 import {
-	clamp
+	clamp,
+	toFixed
 } from './../utils/utils.js';
 import {
 	MIN_SECOND_WIDTH,
@@ -115,7 +121,16 @@ export default Subview.extend(/** @lends TimelineTimeslider.prototype */{
 	 * @param {object} e Event.
 	 */
 
-	_onMouseUp(){
+	_onMouseUp(e){
+		const target = $(e.target);
+		const isTimeSlider = target.is('.wpg-timeline-timeslider');
+		if (e.type === 'mouseup' && isTimeSlider && this.__startX === e.clientX){
+			const secondWidth = this.getState('secondWidth');
+			const seconds = this.getState('seconds');
+			const offsetX = e.clientX - this.$el.offset().left;
+			const currentTime = toFixed(offsetX / secondWidth);
+			this.setState('currentTime', clamp(is_rtl ? seconds - currentTime : currentTime, 0, seconds));
+		}
 		this.__startX = null;
 		this.__startY = null;
 		this.__prevPositionX = null;
@@ -138,6 +153,7 @@ export default Subview.extend(/** @lends TimelineTimeslider.prototype */{
 		}
 		this.__prevPosition = this.getState('timelineLeft');
 		this.__prevSecondWidth = this.getState('secondWidth');
+		this.__touchTarget = $(e.target);
 	},
 
 	/**
@@ -159,20 +175,28 @@ export default Subview.extend(/** @lends TimelineTimeslider.prototype */{
 			const distance = moveDistance - this.__startDistance;
 			this.setState('secondWidth', clamp(this.__prevSecondWidth + distance, MIN_SECOND_WIDTH, MAX_SECOND_WIDTH));
 		}
+		this.__hasTouchMove = true;
 	},
 
 	/**
 	 *
 	 * @since 1.0.0
 	 * @access private
-	 * @param {object} e Event.
 	 */
 
 	_onTouchEnd(){
+		if (!this.__hasTouchMove && this.__touchTarget && this.__touchTarget.is('.wpg-timeline-timeslider') && this.__start){
+			const secondWidth = this.getState('secondWidth');
+			const seconds = this.getState('seconds');
+			const offsetX = this.__start - this.$el.offset().left;
+			const currentTime = toFixed(offsetX / secondWidth);
+			this.setState('currentTime', clamp(is_rtl ? seconds - currentTime : currentTime, 0, seconds));
+		}
 		this.__start = null;
 		this.__startDistance = null;
 		this.__prevPosition = null;
 		this.__prevSecondWidth = null;
+		this.__hasTouchMove = false;
 	}
 
 });

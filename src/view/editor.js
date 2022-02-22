@@ -201,7 +201,7 @@ export default Base.extend(/** @lends Editor.prototype */{
 							shape.id = className;
 						}
 						if (transform && isObject(transform)){
-							extend(shape, transform);
+							shape.set(transform);
 						}
 						if (shape.clipPath){
 							const cpId = ($(element).parent().attr('clip-path') || '').replace('url(', '').replace(')', '');
@@ -209,6 +209,7 @@ export default Base.extend(/** @lends Editor.prototype */{
 							const cpTransform = $(cpElement).children().first().data('transform') || {};
 							extend(shape.clipPath, cpTransform);
 						}
+						/* This will be deprecated!!!
 						if (shape.type === 'text'){
 							// Fabric.js parses text svg element to Text object.
 							// We replace it to IText to be editable.
@@ -227,7 +228,7 @@ export default Base.extend(/** @lends Editor.prototype */{
 							options.top = matrix[5] !== undefined ? parseFloat(matrix[5]) : options.top;
 							options.textAlign = (textAnchor === 'middle') ? 'center' : (textAnchor === 'end') ? 'right' : 'left';
 							shape = new IText(text, options);
-						} else if (shape.type === 'image'){
+						} else */ if (shape.type === 'image'){
 							const wpId = $(element).parent().data('wpid');
 							const wpSize = $(element).parent().data('wpsize');
 							if (wpId){ // If shape is an image, we save attachment id to data-wpid attribute.

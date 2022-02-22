@@ -159,6 +159,9 @@ export default util.createClass(Canvas, /** @lends Scene.prototype */{
 		} = options;
 		const bgOpacity = separateColorOpacity('bg', backgroundColor || '')['bg-opacity'];
 		const style = (backgroundColor && bgOpacity !== 0) ? `style="background-color:${backgroundColor};" ` : '';
+		const fontFaces = this.createSVGFontFacesMarkup();
+		const refElements = this.createSVGRefElementsMarkup();
+		const clipPath = this.createSVGClipPathMarkup(options);
 		markup.push(
 			'<svg ',
 			'xmlns="http://www.w3.org/2000/svg" ',
@@ -169,12 +172,47 @@ export default util.createClass(Canvas, /** @lends Scene.prototype */{
 			'xml:space="preserve">\n',
 			//projectName ? `<title>${projectName}</title>` : '',
 			//projectDescription ? `<desc>${projectDescription}</desc>\n` : '',
-			//'<defs>\n',
-			//this.createSVGFontFacesMarkup(),
-			//this.createSVGRefElementsMarkup(),
-			//this.createSVGClipPathMarkup(options),
-			//'</defs>\n'
 		);
+		if (fontFaces || refElements || clipPath){
+			markup.push(
+				'<defs>\n',
+				fontFaces,
+				refElements,
+				clipPath,
+				'</defs>\n'
+			);
+		}
+	},
+
+	/**
+	 * Extend fabric.Canvas.prototype.createSVGFontFacesMarkup().
+	 * @since 1.5.0
+	 * @return {string}
+	 */
+
+	createSVGFontFacesMarkup(){
+		return '';
+	},
+
+	/**
+	 * Extend fabric.Canvas.prototype.createSVGRefElementsMarkup().
+	 * @since 1.5.0
+	 * @return {string}
+	 */
+
+	createSVGRefElementsMarkup(){
+		return '';
+	},
+
+	/**
+	 * Extend fabric.Canvas.prototype.createSVGClipPathMarkup().
+	 * @since 1.5.0
+	 * @param {object} options
+	 * @return {string}
+	 */
+
+	createSVGClipPathMarkup(options){
+		return '';
 	}
 
 });

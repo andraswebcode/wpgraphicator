@@ -18,10 +18,11 @@ import {
 	isNaN as _isNaN,
 	isUndefined,
 	each,
-	pick,
+	find as _find,
 	omit,
 	isEqual,
 	isString,
+	isArray,
 	isEmpty
 } from 'underscore';
 
@@ -182,7 +183,7 @@ export const transformOrigins = {
 };
 
 /**
- * List of web safa fonts.
+ * List of web safe fonts.
  * @since 1.0.0
  * @var {array}
  */
@@ -197,6 +198,14 @@ export const webSafeFonts = [
 	"Impact",
 	"Comic Sans MS"
 ];
+
+/**
+ * List of custom fonts that are registered via registerFont().
+ * @since 1.5.0
+ * @var {array}
+ */
+
+export const customFonts = [];
 
 /**
  * List od animatable properties.
@@ -634,4 +643,37 @@ export function countShapesInSVGString(svgString = ''){
 		return 0;
 	}
 	return svgString.match(/(\<)(path|circle|poly|ellipse|rect|line|image|text)/g)?.length || 0;
+}
+
+/**
+ * Add fonts to font family list.
+ * @param {string|array} family Name of font family, or list of fonts.
+ * @param {string} url Link to font family, eg.: google fonts.
+ * @param {string} fallbackFont
+ * @since 1.5.0
+ */
+
+export function registerFont(family, url, fallbackFont){
+
+	if (!family){
+		return;
+	}
+
+	if (isArray(family)){
+		each(family, ({family, url, fallbackFont}) => registerFont(family, url, fallbackFont));
+	} else {
+		const font = {
+			family
+		};
+		if (url){
+			font.url = family
+		}
+		if (fallbackFont){
+			font.fallbackFont = fallbackFont;
+		}
+		if (!_find(customFonts, {family})){
+			customFonts.push(font);
+		}
+	}
+
 }

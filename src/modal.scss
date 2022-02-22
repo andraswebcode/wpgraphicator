@@ -159,6 +159,17 @@
 	}
 }
 
+html[dir=rtl] .wpg {
+	&-item {
+		&__overlapped-link {
+			span {
+				margin-left: 0;
+				margin-right: $padding-sm;
+			}
+		}
+	}
+}
+
 @media screen and (max-width: $mobile-breakpoint) {
 	.wpg {
 		&-modal {

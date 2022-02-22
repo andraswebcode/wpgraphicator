@@ -263,6 +263,27 @@
 	}
 }
 
+html[dir=rtl] .wpg {
+	&-item {
+		&__overlapped-link {
+			span {
+				margin-left: 0;
+				margin-right: $padding-sm;
+			}
+		}
+		&__export-button {
+			left: $padding-sm;
+			right: auto;
+		}
+	}
+	&-pagination {
+		&__total-items {
+			margin-left: $padding-sm;
+			margin-right: 0;
+		}
+	}
+}
+
 @media screen and (max-width: $mobile-breakpoint) {
 	.wpg {
 		&-item {

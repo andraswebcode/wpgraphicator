@@ -5,6 +5,9 @@ import {
 	uniq,
 	isArray
 } from 'underscore';
+import {
+	is_rtl
+} from 'wpgeditor';
 
 import Frame from './frame.js';
 import TimelineTimeslider from './subview-timeline-timeslider.js';
@@ -135,7 +138,7 @@ export default Frame.extend(/** @lends Timeline.prototype */{
 		const offset = this.$('.wpg-timeline-timeslider').offset();
 		const currentTime = (clientX - offset.left) / secondWidth;
 		const seconds = this.getState('seconds');
-		this.setState('currentTime', toFixed(clamp(currentTime, 0, seconds)));
+		this.setState('currentTime', toFixed(clamp(is_rtl ? seconds - currentTime : currentTime, 0, seconds)));
 	},
 
 	/**
@@ -181,11 +184,11 @@ export default Frame.extend(/** @lends Timeline.prototype */{
 		switch (e.keyCode){
 			case 39: // Arrow right
 			e.preventDefault();
-			this.setState('currentTime', Math.min(currentTime + n, seconds));
+			this.setState('currentTime', is_rtl ? Math.max(currentTime - n, 0) : Math.min(currentTime + n, seconds));
 			break;
 			case 37: // Arrow left
 			e.preventDefault();
-			this.setState('currentTime', Math.max(currentTime - n, 0));
+			this.setState('currentTime', is_rtl ? Math.min(currentTime + n, seconds) : Math.max(currentTime - n, 0));
 			break;
 			case 38: // Arrow up
 			e.preventDefault();
@@ -220,7 +223,7 @@ export default Frame.extend(/** @lends Timeline.prototype */{
 		const secondWidth = state.get('secondWidth');
 		const timelineLeft = state.get('timelineLeft');
 		const left = secondWidth * currentTime + timelineLeft;
-		this.$('.wpg-timeline__current-time').css('left', left);
+		this.$('.wpg-timeline__current-time').css(is_rtl ? 'right' : 'left', left);
 	},
 
 	/**

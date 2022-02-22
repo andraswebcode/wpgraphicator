@@ -13,6 +13,9 @@ import {
 import {
 	util
 } from 'fabric';
+import {
+	is_rtl
+} from 'wpgeditor';
 
 import Subview from './subview.js';
 import TimelineTrackPoint from './subview-timeline-track-point.js';
@@ -204,7 +207,7 @@ export default Subview.extend(/** @lends TimelineTrack.prototype */{
 			const offsetX = clientX - this.$el.offset().left;
 			const second = toFixed(offsetX / secondWidth);
 			pointView.model.set({
-				second:clamp(second, 0, seconds)
+				second:clamp(is_rtl ? seconds - second : second, 0, seconds)
 			});
 		} else {
 			const clickedPointView = findWhere(activeTrackPoints, point => point.$('.wpg-timeline-track-point-diamond').is(':focus'));
@@ -216,14 +219,14 @@ export default Subview.extend(/** @lends TimelineTrack.prototype */{
 				const second = toFixed(offsetX / secondWidth);
 				const thatSec = clickedPointView?.model.get('second') || 0;
 				clickedPointView?.model.set({
-					second:clamp(second, 0, seconds)
+					second:clamp(is_rtl ? seconds - second : second, 0, seconds)
 				});
 				each(activeTrackPoints, point => {
 					if (point === clickedPointView){
 						return;
 					}
 					const thisSec = point?.model.get('second') || 0;
-					const sec = toFixed(thisSec - thatSec + second);
+					const sec = toFixed(thisSec - thatSec + (is_rtl ? seconds - second : second));
 					point?.model.set({
 						second:clamp(sec, 0, seconds)
 					});

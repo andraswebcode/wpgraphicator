@@ -17,6 +17,9 @@ import {
 	preventOverflow,
 	flip
 } from '@popperjs/core';
+import {
+	is_rtl
+} from 'wpgeditor';
 
 import Subview from './subview.js';
 import {
@@ -199,7 +202,7 @@ export default Subview.extend(/** @lends TimelineTrackPoint.prototype */{
 	_setLeft(){
 		const secondWidth = this.getState('secondWidth');
 		const second = this.model.get('second');
-		this.$el.css('left', second * secondWidth);
+		this.$el.css(is_rtl ? 'right' : 'left', second * secondWidth);
 	},
 
 	/**
@@ -520,11 +523,11 @@ export default Subview.extend(/** @lends TimelineTrackPoint.prototype */{
 			case 39: // Arrow right
 			e.preventDefault();
 			if (activeTrackPoints.length === 1){
-				this.model.set('second', toFixed(Math.min(second + n, seconds)));
+				this.model.set('second', toFixed(is_rtl ? Math.max(second - n, 0) : Math.min(second + n, seconds)));
 			} else {
 				each(activeTrackPoints, point => {
 					const sec = point.model?.get('second');
-					point.model?.set('second', toFixed(Math.min(sec + n, seconds)));
+					point.model?.set('second', toFixed(is_rtl ? Math.max(sec - n, 0) : Math.min(sec + n, seconds)));
 				});
 				if (shapes.length > 1){
 					this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:change', shapes);
@@ -535,11 +538,11 @@ export default Subview.extend(/** @lends TimelineTrackPoint.prototype */{
 			case 37: // Arrow left
 			e.preventDefault();
 			if (activeTrackPoints.length === 1){
-				this.model.set('second', toFixed(Math.max(second - n, 0)));
+				this.model.set('second', toFixed(is_rtl ? Math.min(second + n, seconds) : Math.max(second - n, 0)));
 			} else {
 				each(activeTrackPoints, point => {
 					const sec = point.model?.get('second');
-					point.model?.set('second', toFixed(Math.max(sec - n, 0)));
+					point.model?.set('second', toFixed(is_rtl ? Math.min(sec + n, seconds) : Math.max(sec - n, 0)));
 				});
 				if (shapes.length > 1){
 					this.shapes.trigger('wpg:pushtohistorystack', models, 'bulk:change', shapes);
