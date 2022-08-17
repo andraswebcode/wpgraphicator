@@ -36,7 +36,7 @@ import History from './../utils/history.js';
 import Scene from './../canvas/class-scene.js';
 import Clipboard from './../utils/clipboard.js';
 import {
-	toFixed,
+	getTransformFromDataAttrs,
 	createSceneBackground
 } from './../utils/utils.js';
 
@@ -195,18 +195,21 @@ export default Base.extend(/** @lends Editor.prototype */{
 					each(shapes, (shape, i) => {
 						const element = elements[i];
 						const className = element && $(element).parent().attr('class');
-						const transform = element && $(element).parent().data('transform');
+						const transformDeprecated = element && $(element).parent().data('transform'); // @deprecated
 						const isInGroup = element && $(element).closest('g[data-group="true"]').length;
+						const transform = getTransformFromDataAttrs(element && $(element).parent());
 						if (className){
 							shape.id = className;
 						}
-						if (transform && isObject(transform)){
+						if (transformDeprecated && isObject(transformDeprecated)){
+							shape.set(transformDeprecated);
+						} else {
 							shape.set(transform);
 						}
 						if (shape.clipPath){
 							const cpId = ($(element).parent().attr('clip-path') || '').replace('url(', '').replace(')', '');
 							const cpElement = (filter(allElements, el => $(el).is(cpId)) || [])[0];
-							const cpTransform = $(cpElement).children().first().data('transform') || {};
+							const cpTransform = $(cpElement).children().first().data('transform') || getTransformFromDataAttrs($(cpElement).children().first());
 							extend(shape.clipPath, cpTransform);
 						}
 						/* This will be deprecated!!!
@@ -244,7 +247,7 @@ export default Base.extend(/** @lends Editor.prototype */{
 							if (!this.__objects[groupClass]){
 								this.__objects[groupClass] = {
 									objects:[],
-									transform:groupEl.data('transform') || {}
+									transform:groupEl.data('transform') || getTransformFromDataAttrs(groupEl)
 								};
 							}
 							this.__objects[groupClass].objects.push(shape);
