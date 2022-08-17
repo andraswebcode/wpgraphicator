@@ -331,24 +331,26 @@ util.object.extend(FabricObject.prototype, {
 			originX,
 			originY
 		} = this;
-		const transform = {
-			top,
-			left,
-			angle,
-			scaleX,
-			scaleY,
-			skewX,
-			skewY,
-			originX,
-			originY
-		};
+		const transform = [
+			!isUndefined(top) ? `data-top="${toFixed(top)}" ` : '',
+			!isUndefined(left) ? `data-left="${toFixed(left)}" ` : '',
+			!isUndefined(angle) ? `data-angle="${toFixed(angle)}" ` : '',
+			!isUndefined(scaleX) ? `data-scalex="${toFixed(scaleX)}" ` : '',
+			!isUndefined(scaleY) ? `data-scaley="${toFixed(scaleY)}" ` : '',
+			!isUndefined(skewX) ? `data-skewx="${toFixed(skewX)}" ` : '',
+			!isUndefined(skewY) ? `data-skewy="${toFixed(skewY)}" ` : '',
+			!isUndefined(originX) ? `data-originx="${originX}" ` : '',
+			!isUndefined(originY) ? `data-originy="${originY}" ` : ''
+		];
 		// Debug.
 		if (this.group){
-			transform.opacity = this.opacity;
+			transform.push(
+				!isUndefined(this.opacity) ? `data-opacity="${this.opacity}"` : ''
+			);
 		}
 		return [
 			this.id ? `class="${this.id}" ` : '',
-			`data-transform='${JSON.stringify(transform)}' `,
+			transform.join(''),
 			this.clipPath ? `clip-path="url(#${this.clipPath.clipPathId})"` : ''
 		].join('');
 	},
