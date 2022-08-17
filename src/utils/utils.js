@@ -677,3 +677,42 @@ export function registerFont(family, url, fallbackFont){
 	}
 
 }
+
+/**
+ * 
+ * @param {jQuery} elem
+ * @return {object}
+ * @since 1.5.1
+ */
+
+export function getTransformFromDataAttrs(elem){
+
+	const transform = {};
+
+	if (!elem){
+		return transform;
+	}
+
+	const top = elem.data('top');
+	const left = elem.data('left');
+	const scaleX = elem.data('scalex');
+	const scaleY = elem.data('scaley');
+	const skewX = elem.data('skewx');
+	const skewY = elem.data('skewy');
+	const angle = elem.data('angle');
+	const originX = elem.data('originx');
+	const originY = elem.data('originy');
+
+	if (!isUndefined(top)) transform.top = toFixed(top);
+	if (!isUndefined(left)) transform.left = toFixed(left);
+	if (!isUndefined(scaleX)) transform.scaleX = toFixed(scaleX);
+	if (!isUndefined(scaleY)) transform.scaleY = toFixed(scaleY);
+	if (!isUndefined(skewX)) transform.skewX = toFixed(skewX);
+	if (!isUndefined(skewY)) transform.skewY = toFixed(skewY);
+	if (!isUndefined(angle)) transform.angle = toFixed(angle);
+	if (!isUndefined(originX)) transform.originX = originX;
+	if (!isUndefined(originY)) transform.originY = originY;
+
+	return transform;
+
+}

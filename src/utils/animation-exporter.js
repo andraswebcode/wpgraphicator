@@ -261,7 +261,7 @@ export const getSVGStringWithCSSAnimation = (svgString = '', animations = [], op
 	}
 
 	$svg.find('g').each((i, g) => {
-		$(g).removeAttr('data-transform');
+		$(g).removeAttr('data-transform data-top data-left data-scalex data-scaley data-skewx data-skewy data-angle data-originx data-originy');
 		if ($(g).data('group')){
 			$(g).removeAttr('data-group');
 			$(g).removeAttr('opacity');
@@ -672,7 +672,7 @@ export const getSVGStringWithSMILAnimation = (svgString = '', animations = [], o
 	}
 
 	$svg.find('g').each((i, g) => {
-		$(g).removeAttr('data-transform');
+		$(g).removeAttr('data-transform data-top data-left data-scalex data-scaley data-skewx data-skewy data-angle data-originx data-originy');
 		if ($(g).data('group')){
 			$(g).removeAttr('data-group');
 			$(g).removeAttr('opacity');
