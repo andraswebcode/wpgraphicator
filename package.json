@@ -1,0 +1,49 @@
+{
+  "name": "wpgraphicator",
+  "version": "1.1.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "webpack --config webpack.config.js",
+    "build": "webpack --env production --config webpack.config.js",
+    "frontend": "webpack --config webpack.config.frontend.js",
+    "frontend-build": "webpack --env production --config webpack.config.frontend.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^6.1.1",
+    "@popperjs/core": "^2.9.2",
+    "@reduxjs/toolkit": "^1.8.1",
+    "animejs": "^3.2.1",
+    "array-move": "^4.0.0",
+    "classnames": "^2.3.1",
+    "cssparser": "^0.9.4",
+    "fabric": "^4.5.1",
+    "react-color": "^2.19.3",
+    "react-debounce-input": "^3.2.5",
+    "react-dom": "^18.1.0",
+    "react-linear-gradient-picker": "^2.0.3",
+    "react-moveable": "^0.32.7",
+    "react-redux": "^8.0.1",
+    "react-selecto": "^1.15.1",
+    "reactjs-popup": "^2.0.5",
+    "redux-undo": "^1.0.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.14.6",
+    "@babel/preset-env": "^7.14.7",
+    "@babel/preset-react": "^7.16.7",
+    "babel-loader": "^8.2.2",
+    "css-loader": "^5.2.6",
+    "mini-css-extract-plugin": "^1.6.2",
+    "sass": "^1.35.1",
+    "sass-loader": "^12.1.0",
+    "webpack": "^5.41.1",
+    "webpack-cli": "^4.7.2",
+    "webpack-dev-server": "^3.11.2"
+  },
+  "browserslist": [
+    "ie 11"
+  ]
+}
